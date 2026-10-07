@@ -1,0 +1,15 @@
+#pergunta: porque nao linka corretamente se usa gcc?
+
+echo ---------vou compilar o seguinte ------------------------
+echo g++ -DTYPE=DOUBLE -O3 -pthread reduceSumPth.c -o reduceSumPth-double
+echo g++ -DTYPE=FLOAT -O3 -pthread reduceSumPth.c -o reduceSumPth-float
+
+echo g++ -DTYPE=DOUBLE -O3 -march=native -pthread reduceSumPth.c -o reduceSumPth-double-native
+echo g++ -DTYPE=FLOAT  -O3 -march=native -pthread reduceSumPth.c -o reduceSumPth-float-native
+echo ---------------------------------
+
+g++ -DTYPE=DOUBLE -O3 -pthread reduceSumPth.c -o reduceSumPth-double
+g++ -DTYPE=FLOAT -O3 -pthread reduceSumPth.c -o reduceSumPth-float
+
+g++ -DTYPE=DOUBLE -O3 -march=native -pthread reduceSumPth.c -o reduceSumPth-double-native
+g++ -DTYPE=FLOAT  -O3 -march=native -pthread reduceSumPth.c -o reduceSumPth-float-native
