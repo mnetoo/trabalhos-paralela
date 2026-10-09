@@ -205,6 +205,3 @@ Fluxo de Execução da Thread (Worker Function):
 - Gerar relatório com especificações de hardware (lscpu, lstopo), tabela de
 
   vazão/speedup, gráficos e explicação do mecanismo de 2 barreiras.
-
-===================================================================
-===================================================================
