@@ -1,44 +1,209 @@
 ===================================================================
-PLANO DE EXECUÇÃO: SOMA DE PREFIXOS PARALELA (PTHREADS)
+
+PLANO DE TRABALHO: SOMA DE PREFIXOS PARALELA COM PTHREADS (v1.5)
+
 ===================================================================
 
-1. DEFINIÇÃO DAS ESTRUTURAS GLOBAIS E PROTÓTIPO
-   - Configurar o tipo de dado: #define TYPE long long
-   - Declarar o vetor global PartialSum (tamanho MAX_THREADS).
-   - Declarar a barreira global: pthread_barrier_t barrier.
-   - Declarar a variável estática de controle 'initialized' e a estrutura
-     de controle do ThreadPool.
 
-2. CÁLCULO DA DISTRIBUIÇÃO DE CARGA (CHUNKING)
-   - Definir a fórmula de divisão balanceada por thread (myIndex):
-     nElements = (nTotalElements + (nThreads - 1)) / nThreads
-   - Definir o intervalo de atuação de cada thread:
-     first = myIndex * nElements
-     last  = min((myIndex + 1) * nElements, nTotalElements) - 1
 
-3. IMPLEMENTAÇÃO DA FUNÇÃO DA THREAD (WORKER)
-   - Loop Principal: Manter em while(true) usando barreiras para o reuso no ThreadPool.
-   - Fase 1 (Pré-Barreira):
-     - LER a faixa Vec[first...last].
-     - Calcular a soma parcial da faixa e armazenar em PartialSum[myIndex].
-   - Sincronização:
-     - Chamar pthread_barrier_wait(&barrier).
-   - Fase 2 (Pós-Barreira):
-     - LER o vetor PartialSum[0...myIndex-1] e calcular myPrefixSum (offset local).
-     - Atualizar a faixa no vetor de forma INPLACE com apenas um laço 'for':
-       percorrer Vec[first...last] acumulando os valores e somando myPrefixSum.
+-------------------------------------------------------------------
 
-4. ENCAPSULAMENTO DA FUNÇÃO PRINCIPAL (ParallelPrefixSumPth)
-   - Na primeira execução (!initialized):
-     - Inicializar a barreira para 'nThreads'.
-     - Criar as threads trabalhadoras 1 até (nThreads - 1) via pthread_create.
-     - Definir initialized = 1.
-   - Execução:
-     - A Thread 0 (Thread chamadora/Main) executa a função de worker diretamente.
+1. ESTRUTURA GLOBAL E DEFINIÇÕES
 
-5. TESTES E VALIDAÇÃO
-   - Alocar o vetor dinamicamente via malloc na main.
-   - Preencher o vetor com valores de teste (ex: todos iguais a 1).
-   - Chamar a função ParallelPrefixSumPth(Vec, nTotalElements, nThreads).
-   - Validar se o resultado final no vetor Vec corresponde à soma de prefixos correta.
+-------------------------------------------------------------------
+
+- Definição do tipo e constantes:
+
+    #define TYPE long long
+
+    #define NTIMES 100
+
+    #define MAX_THREADS 64
+
+
+
+- Protótipo obrigatório da função:
+
+    void ParallelPrefixSumPth( volatile TYPE *Vec, 
+
+                               long nTotalElmts, 
+
+                               long chunkSize,
+
+                               int nThreads );
+
+
+
+- Estruturas Globais:
+
+    - PartialSum: vetor auxiliar global de tamanho MAX_THREADS.
+
+    - Sincronização: barreiras (pthread_barrier_t) e/ou contadores atômicos.
+
+    - ThreadPool: array de pthread_t e controle static int initialized.
+
+
+
+-------------------------------------------------------------------
+
+2. TRATAMENTO DA LINHA DE COMANDO E PARÂMETROS
+
+-------------------------------------------------------------------
+
+- Sintaxe de execução:
+
+    ./prefixSumPth <nTotalElements> <nThreads> <chunkSize> [-v]
+
+
+
+- Lógica do chunkSize:
+
+    - Se chunkSize > 0: as threads processam o vetor em blocos de 
+
+      tamanho chunkSize (interleaved/strided) buscando reutilização de cache.
+
+    - Se chunkSize == 0: cada thread processa 1 único chunk contínuo
+
+      de tamanho (nTotalElements + nThreads - 1) / nThreads.
+
+
+
+- Parâmetro OPCIONAL -v:
+
+    - Se informado, aciona a verificação sequencial verifyPrefixSum ao final.
+
+    - Requer manter uma COPIA sequencial do vetor inicial (InitVector) para
+
+      comparação após a execução do algoritmo in-place.
+
+
+
+-------------------------------------------------------------------
+
+3. IMPLEMENTAÇÃO DO ALGORITMO COM 2 BARREIRAS (OTIMIZADO COM ATÔMICOS)
+
+-------------------------------------------------------------------
+
+O modelo de ThreadPool tradicional exige 3 barreiras. Para obter maior 
+
+desempenho e o desafio de 2 barreiras, substitui-se a 3ª barreira por 
+
+sinalização via contador atômico (<stdatomic.h>).
+
+
+
+Estrutura das Barreiras:
+
+  - Barreira 1 (barreira do ThreadPool): Libera as threads do pool para
+
+    iniciar a Fase 1.
+
+  - Barreira 2 (barreira do Algoritmo): Garante que todas as threads 
+
+    preencheram o vetor PartialSum antes da Fase 2.
+
+  - Sinalização de Término (sem barreira 3):
+
+    - Variável atômica global: atomic_int threads_completed = 0;
+
+    - A Thread 0 reseta threads_completed = 0 antes da Fase 1.
+
+    - As Worker Threads (1 a nThreads-1), ao terminarem a Fase 2, executam:
+
+      atomic_fetch_add(&threads_completed, 1);
+
+    - A Thread 0 (Main), após concluir sua própria Fase 2, faz busy-waiting suave:
+
+      while (atomic_load(&threads_completed) < nThreads - 1) { /* spin */ }
+
+
+
+Fluxo de Execução da Thread (Worker Function):
+
+  while (true):
+
+    1. pthread_barrier_wait(&pool_barrier);  // BARREIRA 1
+
+    
+
+    2. FASE 1 (Pré-Barreira):
+
+       - Lê sua faixa/chunks do vetor Vec.
+
+       - Calcula a soma parcial local da sua responsabilidade.
+
+       - Escreve em PartialSum[myIndex].
+
+       
+
+    3. pthread_barrier_wait(&algo_barrier);  // BARREIRA 2
+
+    
+
+    4. FASE 2 (Pós-Barreira):
+
+       - Lê PartialSum[0...myIndex-1] e calcula myPrefixSum (offset local).
+
+       - Atualiza sua faixa no vetor Vec IN-PLACE (Vec[i] += myPrefixSum) em
+
+         passada única de escrita.
+
+         
+
+    5. CONCLUSÃO:
+
+       - Se myIndex != 0 (Worker):
+
+         atomic_fetch_add(&threads_completed, 1);
+
+       - Se myIndex == 0 (Thread 0 / Main):
+
+         Garante sincronização das demais e retorna para a main.
+
+
+
+-------------------------------------------------------------------
+
+4. MEDIÇÃO DE TEMPO E DESEMPENHO (NTIMES = 100)
+
+-------------------------------------------------------------------
+
+- No main, realizar 100 chamadas seguidas da função paralela:
+
+    chrono_start(&t);
+
+    for (int i = 0; i < NTIMES; i++) {
+
+        ParallelPrefixSumPth(Vec, nTotalElements, chunkSize, nThreads);
+
+    }
+
+    chrono_stop(&t);
+
+
+
+- Métrica de Vazão (MOPS - Milhões de Operações por Segundo):
+
+    Total_OPs = nTotalElements * NTIMES
+
+    Throughput = Total_OPs / Tempo_Total_Segundos / 1.0e6
+
+
+
+-------------------------------------------------------------------
+
+5. EXPERIMENTAÇÃO, SCRIPT E RELATÓRIO
+
+-------------------------------------------------------------------
+
+- Criar o script roda.sh <nTotalElements> <nThreads> <chunkSize> para
+
+  executar baterias de testes no Lab 4 (1 a 8 threads, 10 repetições cada).
+
+- Testar variações de chunkSize para encontrar a melhor reutilização de cache.
+
+- Gerar relatório com especificações de hardware (lscpu, lstopo), tabela de
+
+  vazão/speedup, gráficos e explicação do mecanismo de 2 barreiras.
+
 ===================================================================
