@@ -1,6 +1,6 @@
 ===================================================================
 
-PLANO DE TRABALHO: SOMA DE PREFIXOS PARALELA COM PTHREADS (v1.5)
+PLANO DE TRABALHO COMPLETO: SOMA DE PREFIXOS PARALELA (v1.5)
 
 ===================================================================
 
@@ -8,11 +8,27 @@ PLANO DE TRABALHO: SOMA DE PREFIXOS PARALELA COM PTHREADS (v1.5)
 
 -------------------------------------------------------------------
 
-1. ESTRUTURA GLOBAL E DEFINIÇÕES
+1. ESTRUTURA GLOBAL, CABEÇALHOS E DEFINIÇÕES
 
 -------------------------------------------------------------------
 
-- Definição do tipo e constantes:
+- Cabeçalhos Obrigatórios:
+
+    #include <stdio.h>
+
+    #include <stdlib.h>
+
+    #include <pthread.h>
+
+    #include <sched.h>       // Afinidade de threads (CPU_SET, pthread_attr_setaffinity_np)
+
+    #include <stdatomic.h>   // Suporte a operações atômicas (para versão de 2 barreiras)
+
+    #include <unistd.h>      // sysconf(_SC_NPROCESSORS_ONLN)
+
+
+
+- Definções de Tipos e Constantes:
 
     #define TYPE long long
 
@@ -22,7 +38,7 @@ PLANO DE TRABALHO: SOMA DE PREFIXOS PARALELA COM PTHREADS (v1.5)
 
 
 
-- Protótipo obrigatório da função:
+- Protótipo Exigido da Função Paralela:
 
     void ParallelPrefixSumPth( volatile TYPE *Vec, 
 
@@ -38,19 +54,51 @@ PLANO DE TRABALHO: SOMA DE PREFIXOS PARALELA COM PTHREADS (v1.5)
 
     - PartialSum: vetor auxiliar global de tamanho MAX_THREADS.
 
-    - Sincronização: barreiras (pthread_barrier_t) e/ou contadores atômicos.
+    - Sincronização: barreiras (pthread_barrier_t) e/ou contadores atômicos (atomic_int).
 
-    - ThreadPool: array de pthread_t e controle static int initialized.
+    - ThreadPool: arrays de pthread_t e pthread_attr_t, além da flag 'static int initialized'.
+
+
+
+-------------------------------------------------------------------
+
+2. INICIALIZAÇÃO DO THREADPOOL E AFINIDADE DE THREADS (HARDWARE BINDING)
+
+-------------------------------------------------------------------
+
+Para evitar migração de threads pelo SO e garantir localidade de cache L1/L2:
+
+- Descobrir dinamicamente os núcleos lógicos do sistema:
+
+    int total_logical_cores = sysconf(_SC_NPROCESSORS_ONLN);
+
+
+
+- Na primeira execução da função (!initialized):
+
+  1. Inicializar as barreiras de sincronização.
+
+  2. Para cada worker thread (i de 1 até nThreads-1):
+
+     - Calcular o core de fixação: core_id = i % total_logical_cores;
+
+     - Configurar a máscara cpuset via CPU_ZERO(&cpuset) e CPU_SET(core_id, &cpuset).
+
+     - Aplicar no atributo: pthread_attr_setaffinity_np(&attr[i], sizeof(cpu_set_t), &cpuset).
+
+     - Criar a thread associada ao pool com os atributos definidos.
+
+  3. Definir initialized = 1.
 
 
 
 -------------------------------------------------------------------
 
-2. TRATAMENTO DA LINHA DE COMANDO E PARÂMETROS
+3. LINHA DE COMANDO E GERENCIAMENTO DE CHUNKS
 
 -------------------------------------------------------------------
 
-- Sintaxe de execução:
+- Sintaxe de Execução:
 
     ./prefixSumPth <nTotalElements> <nThreads> <chunkSize> [-v]
 
@@ -58,117 +106,99 @@ PLANO DE TRABALHO: SOMA DE PREFIXOS PARALELA COM PTHREADS (v1.5)
 
 - Lógica do chunkSize:
 
-    - Se chunkSize > 0: as threads processam o vetor em blocos de 
+    - Se chunkSize > 0: Cada thread percorre o vetor em blocos do tamanho informado 
 
-      tamanho chunkSize (interleaved/strided) buscando reutilização de cache.
+      procurando manter os dados aquecidos na memória cache.
 
-    - Se chunkSize == 0: cada thread processa 1 único chunk contínuo
+    - Se chunkSize == 0: Cada thread opera em um único bloco contínuo (stride estático):
 
-      de tamanho (nTotalElements + nThreads - 1) / nThreads.
+      nElements = (nTotalElements + nThreads - 1) / nThreads.
 
 
 
-- Parâmetro OPCIONAL -v:
+- Parâmetro -v (Verificação Opcional):
 
-    - Se informado, aciona a verificação sequencial verifyPrefixSum ao final.
+    - Requer alocar e copiar o vetor inicial sequencialmente (InitVector) na main.
 
-    - Requer manter uma COPIA sequencial do vetor inicial (InitVector) para
+    - Se -v for informado, chama ao final:
 
-      comparação após a execução do algoritmo in-place.
+      verifyPrefixSum(InitVector, Vec, nTotalElements);
 
 
 
 -------------------------------------------------------------------
 
-3. IMPLEMENTAÇÃO DO ALGORITMO COM 2 BARREIRAS (OTIMIZADO COM ATÔMICOS)
+4. IMPLEMENTAÇÃO DO KERNEL COM 2 BARREIRAS (OTIMIZAÇÃO ATÔMICA)
 
 -------------------------------------------------------------------
 
-O modelo de ThreadPool tradicional exige 3 barreiras. Para obter maior 
-
-desempenho e o desafio de 2 barreiras, substitui-se a 3ª barreira por 
-
-sinalização via contador atômico (<stdatomic.h>).
+Substituição da 3ª barreira do modelo clássico por sinalização atômica leve:
 
 
 
-Estrutura das Barreiras:
+Mecanismo de Controle:
 
-  - Barreira 1 (barreira do ThreadPool): Libera as threads do pool para
+  - atomic_int threads_completed = 0;
 
-    iniciar a Fase 1.
+  - Barreira 1 (Pool): Libera a execução das threads trabalhadoras.
 
-  - Barreira 2 (barreira do Algoritmo): Garante que todas as threads 
+  - Barreira 2 (Algoritmo): Aguarda todas gravarem em PartialSum.
 
-    preencheram o vetor PartialSum antes da Fase 2.
+  - Conclusão da Fase 2:
 
-  - Sinalização de Término (sem barreira 3):
-
-    - Variável atômica global: atomic_int threads_completed = 0;
-
-    - A Thread 0 reseta threads_completed = 0 antes da Fase 1.
-
-    - As Worker Threads (1 a nThreads-1), ao terminarem a Fase 2, executam:
+    - Workers (threads 1..nThreads-1): Ao concluírem, executam:
 
       atomic_fetch_add(&threads_completed, 1);
 
-    - A Thread 0 (Main), após concluir sua própria Fase 2, faz busy-waiting suave:
+    - Thread 0 (Main): Aguarda as workers terminarem via spin suave:
 
       while (atomic_load(&threads_completed) < nThreads - 1) { /* spin */ }
 
 
 
-Fluxo de Execução da Thread (Worker Function):
+Fluxo do Kernel da Thread (Worker):
 
   while (true):
 
-    1. pthread_barrier_wait(&pool_barrier);  // BARREIRA 1
+    1. pthread_barrier_wait(&pool_barrier); // BARREIRA 1 (Início do bloco)
 
-    
 
-    2. FASE 1 (Pré-Barreira):
 
-       - Lê sua faixa/chunks do vetor Vec.
+    2. FASE 1 (Soma Parcial Pré-Barreira):
 
-       - Calcula a soma parcial local da sua responsabilidade.
+       - Lê sua fração do vetor Vec (respeitando o chunkSize).
 
-       - Escreve em PartialSum[myIndex].
+       - Armazena a soma calculada da sua faixa em PartialSum[myIndex].
 
-       
 
-    3. pthread_barrier_wait(&algo_barrier);  // BARREIRA 2
 
-    
+    3. pthread_barrier_wait(&algo_barrier); // BARREIRA 2 (Somas parciais salvas)
 
-    4. FASE 2 (Pós-Barreira):
 
-       - Lê PartialSum[0...myIndex-1] e calcula myPrefixSum (offset local).
 
-       - Atualiza sua faixa no vetor Vec IN-PLACE (Vec[i] += myPrefixSum) em
+    4. FASE 2 (Soma de Prefixos In-Place Pós-Barreira):
 
-         passada única de escrita.
+       - Lê PartialSum[0...myIndex-1] e calcula o offset local myPrefixSum.
 
-         
+       - Atualiza o vetor Vec IN-PLACE diretamente acumulando a soma e myPrefixSum.
 
-    5. CONCLUSÃO:
 
-       - Se myIndex != 0 (Worker):
 
-         atomic_fetch_add(&threads_completed, 1);
+    5. SINALIZAÇÃO DE TÉRMINO:
 
-       - Se myIndex == 0 (Thread 0 / Main):
+       - Se myIndex != 0: executa atomic_fetch_add(&threads_completed, 1).
 
-         Garante sincronização das demais e retorna para a main.
+       - Se myIndex == 0: aguarda todas concluírem e retorna a chamada para o main.
 
 
 
 -------------------------------------------------------------------
 
-4. MEDIÇÃO DE TEMPO E DESEMPENHO (NTIMES = 100)
+5. MEDIÇÃO DE DESEMPENHO E RESULTADOS (NTIMES = 100)
 
 -------------------------------------------------------------------
 
-- No main, realizar 100 chamadas seguidas da função paralela:
+- No main, realizar 100 iterações seguidas para amortizar oscilações:
 
     chrono_start(&t);
 
@@ -182,26 +212,36 @@ Fluxo de Execução da Thread (Worker Function):
 
 
 
-- Métrica de Vazão (MOPS - Milhões de Operações por Segundo):
+- Cálculo da Vazão em MOPS (Milhões de Operações por Segundo):
 
-    Total_OPs = nTotalElements * NTIMES
+    Total_Operacoes = (double)nTotalElements * NTIMES;
 
-    Throughput = Total_OPs / Tempo_Total_Segundos / 1.0e6
+    Vazao_MOPS = (Total_Operacoes / Tempo_Total_Segundos) / 1.0e6;
 
 
-
--------------------------------------------------------------------
-
-5. EXPERIMENTAÇÃO, SCRIPT E RELATÓRIO
 
 -------------------------------------------------------------------
 
-- Criar o script roda.sh <nTotalElements> <nThreads> <chunkSize> para
+6. SCRIPT DE EXECUÇÃO E ESTRUTURA DO RELATÓRIO
 
-  executar baterias de testes no Lab 4 (1 a 8 threads, 10 repetições cada).
+-------------------------------------------------------------------
 
-- Testar variações de chunkSize para encontrar a melhor reutilização de cache.
+- Script roda.sh:
 
-- Gerar relatório com especificações de hardware (lscpu, lstopo), tabela de
+    - Automação para rodar testes no Lab 4 de 1 a 8 threads (10 rodadas cada).
 
-  vazão/speedup, gráficos e explicação do mecanismo de 2 barreiras.
+    - Comando base: ./roda.sh 8000000 8 <chunkSize>
+
+
+
+- Relatório Científico:
+
+    - Detalhes da arquitetura do Lab 4 (saída dos comandos lscpu e lstopo).
+
+    - Explicação técnica do algoritmo in-place, ThreadPool e das 2 barreiras com atômicos.
+
+    - Justificativa do chunkSize ideal obtido experimentalmente.
+
+    - Tabela completa e gráficos de Vazão vs. Speedup para 1..8 threads.
+
+===================================================================
