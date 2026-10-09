@@ -207,3 +207,4 @@ Fluxo de Execução da Thread (Worker Function):
   vazão/speedup, gráficos e explicação do mecanismo de 2 barreiras.
 
 ===================================================================
+===================================================================
