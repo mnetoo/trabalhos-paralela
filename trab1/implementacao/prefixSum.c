@@ -8,8 +8,8 @@
 #include <stdatomic.h>
 #include <unistd.h>
 
-/* Vetor de mapeamento de núcleos físicos para priorizar núcleos físicos distintos antes de hyperthreads */
-static const int physical_core_map[MAX_THREADS] = {
+/* Vetor de mapeamento de nucleos fisicos para priorizar nucleos distintos */
+static const int physical_core_map[MAX_THREADS] __attribute__((unused)) = {
     0, 1, 2, 3, 4, 5, 6, 7,
     8, 9, 10, 11, 12, 13, 14, 15,
     16, 17, 18, 19, 20, 21, 22, 23,
@@ -29,12 +29,18 @@ static int pool_initialized = 0;
 static int pool_nThreads = 0;
 static volatile int pool_shutdown = 0;
 
-/* Estruturas de Sincronização: 2 Barreiras + Contador Atômico */
-static pthread_barrier_t pool_barrier; /* BARREIRA 1: Disparo do bloco de iteração */
-static pthread_barrier_t algo_barrier; /* BARREIRA 2: Somas parciais prontas */
-static atomic_int threads_completed;   /* Contagem de término da Fase 2 das workers */
+/* Estruturas de Sincronizacao:
+ * - pool_barrier: BARREIRA 1 do Pool (disparo de cada chamada de ParallelPrefixSumPth)
+ * - algo_barrier: BARREIRA 2 do Algoritmo (somas parciais prontas no vetor PartialSum)
+ * - round_barrier: sincronizacao entre rodadas consecutivas de chunks (usada se chunkSize > 0)
+ * - threads_completed: contador atomico lock-free para finalizacao suave (elimina a barreira de termino!)
+ */
+static pthread_barrier_t pool_barrier;
+static pthread_barrier_t algo_barrier;
+static pthread_barrier_t round_barrier;
+static atomic_int threads_completed;
 
-/* Parâmetros Globais do Kernel */
+/* Parametros Globais do Kernel */
 static volatile TYPE *g_Vec = NULL;
 static long g_nTotalElmts = 0;
 static long g_chunkSize = 0;
@@ -44,73 +50,8 @@ static int g_nThreads = 0;
 static TYPE PartialSum[MAX_THREADS];
 
 /**
- * @brief Executa a Fase 1 da Soma de Prefixos para a thread myIndex:
- *        Lê a sua fração do vetor Vec e armazena a soma em PartialSum[myIndex].
- */
-static void computePhase1(int myIndex, volatile TYPE *Vec, long nTotalElmts, long chunkSize, int nThreads) {
-    long nElements = (nTotalElmts + (long)nThreads - 1) / (long)nThreads;
-    long first = (long)myIndex * nElements;
-    long last = (long)(myIndex + 1) * nElements;
-    if (last > nTotalElmts) {
-        last = nTotalElmts;
-    }
-    last--; /* Limite inclusivo: [first .. last] */
-
-    TYPE myPartialSum = 0;
-    if (first <= last) {
-        long effChunk = (chunkSize > 0) ? chunkSize : (last - first + 1);
-        for (long c = first; c <= last; c += effChunk) {
-            long cEnd = c + effChunk - 1;
-            if (cEnd > last) {
-                cEnd = last;
-            }
-            for (long k = c; k <= cEnd; k++) {
-                myPartialSum += Vec[k];
-            }
-        }
-    }
-    PartialSum[myIndex] = myPartialSum;
-}
-
-/**
- * @brief Executa a Fase 2 da Soma de Prefixos para a thread myIndex:
- *        Lê PartialSum[0 .. myIndex-1] para obter o offset local myPrefixSum
- *        e atualiza o vetor Vec in-place diretamente.
- */
-static void computePhase2(int myIndex, volatile TYPE *Vec, long nTotalElmts, long chunkSize, int nThreads) {
-    long nElements = (nTotalElmts + (long)nThreads - 1) / (long)nThreads;
-    long first = (long)myIndex * nElements;
-    long last = (long)(myIndex + 1) * nElements;
-    if (last > nTotalElmts) {
-        last = nTotalElmts;
-    }
-    last--; /* Limite inclusivo */
-
-    /* Acumula o offset dos prefixos de todas as threads anteriores */
-    TYPE myPrefixSum = 0;
-    for (int k = 0; k < myIndex; k++) {
-        myPrefixSum += PartialSum[k];
-    }
-
-    if (first <= last) {
-        TYPE running = myPrefixSum;
-        long effChunk = (chunkSize > 0) ? chunkSize : (last - first + 1);
-        for (long c = first; c <= last; c += effChunk) {
-            long cEnd = c + effChunk - 1;
-            if (cEnd > last) {
-                cEnd = last;
-            }
-            for (long k = c; k <= cEnd; k++) {
-                running += Vec[k];
-                Vec[k] = running;
-            }
-        }
-    }
-}
-
-/**
- * @brief Função executada pelas worker threads (threads 1 .. nThreads-1)
- *        no Pool de Threads com ciclo de vida contínuo.
+ * @brief Funcao executada pelas worker threads (threads 1 .. nThreads-1)
+ *        no Pool de Threads com ciclo de vida continuo.
  */
 static void *workerKernel(void *arg) {
     int myIndex = *((int *)arg);
@@ -123,16 +64,62 @@ static void *workerKernel(void *arg) {
             break;
         }
 
-        /* FASE 1: Soma Parcial Pré-Barreira */
-        computePhase1(myIndex, g_Vec, g_nTotalElmts, g_chunkSize, g_nThreads);
+        long nTotalElmts = g_nTotalElmts;
+        long chunkSize = g_chunkSize;
+        int nThreads = g_nThreads;
 
-        /* BARREIRA 2 (Algoritmo): Somas parciais salvas no vetor global */
-        pthread_barrier_wait(&algo_barrier);
+        long effChunk = (chunkSize > 0) ? chunkSize : ((nTotalElmts + (long)nThreads - 1) / (long)nThreads);
+        long roundStride = (long)nThreads * effChunk;
+        long totalRounds = (nTotalElmts + roundStride - 1) / roundStride;
 
-        /* FASE 2: Soma de Prefixos In-Place Pós-Barreira */
-        computePhase2(myIndex, g_Vec, g_nTotalElmts, g_chunkSize, g_nThreads);
+        TYPE myBase = 0;
+        for (long r = 0; r < totalRounds; r++) {
+            long roundOffset = r * roundStride;
+            long first = roundOffset + (long)myIndex * effChunk;
+            long last = first + effChunk - 1;
+            if (last >= nTotalElmts) {
+                last = nTotalElmts - 1;
+            }
 
-        /* SINALIZAÇÃO DE TÉRMINO: Incrementa atômico com semântica release */
+            /* FASE 1: Soma Parcial do chunk desta rodada */
+            TYPE myPartialSum = 0;
+            if (first <= last) {
+                for (long k = first; k <= last; k++) {
+                    myPartialSum += g_Vec[k];
+                }
+            }
+            PartialSum[myIndex] = myPartialSum;
+
+            /* BARREIRA 2 (Algoritmo): Aguarda somas parciais de todas as threads */
+            pthread_barrier_wait(&algo_barrier);
+
+            /* FASE 2: Soma de Prefixos In-Place do chunk mantido no cache L2 */
+            TYPE myPrefixSum = myBase;
+            for (int k = 0; k < myIndex; k++) {
+                myPrefixSum += PartialSum[k];
+            }
+
+            if (first <= last) {
+                TYPE running = myPrefixSum;
+                for (long k = first; k <= last; k++) {
+                    running += g_Vec[k];
+                    g_Vec[k] = running;
+                }
+            }
+
+            /* Se houver proxima rodada de chunks, sincroniza */
+            if (r + 1 < totalRounds) {
+                TYPE roundTotal = 0;
+                for (int k = 0; k < nThreads; k++) {
+                    roundTotal += PartialSum[k];
+                }
+                myBase += roundTotal;
+
+                pthread_barrier_wait(&round_barrier);
+            }
+        }
+
+        /* SINALIZACAO DE TERMINO LOCK-FREE: Incrementa atomico com release */
         atomic_fetch_add_explicit(&threads_completed, 1, memory_order_release);
     }
 
@@ -140,40 +127,45 @@ static void *workerKernel(void *arg) {
 }
 
 /**
- * @brief Inicializa o pool de threads e configura a afinidade de núcleos.
+ * @brief Inicializa o pool de threads e configura a afinidade de nucleos.
  */
 static void initThreadPool(int nThreads) {
     pool_nThreads = nThreads;
     pool_shutdown = 0;
     atomic_store_explicit(&threads_completed, 0, memory_order_relaxed);
 
-    /* Inicializa as 2 barreiras para nThreads */
+    /* Inicializa as barreiras para nThreads */
     pthread_barrier_init(&pool_barrier, NULL, (unsigned int)nThreads);
     pthread_barrier_init(&algo_barrier, NULL, (unsigned int)nThreads);
+    pthread_barrier_init(&round_barrier, NULL, (unsigned int)nThreads);
 
+#if defined(__linux__)
     int total_logical_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
     if (total_logical_cores <= 0) {
         total_logical_cores = 1;
     }
 
-    /* Fixa a thread 0 (main) no primeiro núcleo da topologia */
+    /* Fixa a thread 0 (main) no primeiro nucleo da topologia */
     cpu_set_t cpuset0;
     CPU_ZERO(&cpuset0);
     CPU_SET(physical_core_map[0] % total_logical_cores, &cpuset0);
     pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset0);
+#endif
 
     thread_ids[0] = 0;
 
     /* Cria as worker threads (1 .. nThreads-1) com afinidade de core */
     for (int i = 1; i < nThreads; i++) {
         thread_ids[i] = i;
-        int core_id = physical_core_map[i] % total_logical_cores;
-
         pthread_attr_init(&attr[i]);
+
+#if defined(__linux__)
+        int core_id = physical_core_map[i] % total_logical_cores;
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
         CPU_SET(core_id, &cpuset);
         pthread_attr_setaffinity_np(&attr[i], sizeof(cpu_set_t), &cpuset);
+#endif
 
         pthread_create(&threads[i], &attr[i], workerKernel, &thread_ids[i]);
     }
@@ -188,7 +180,7 @@ void ParallelPrefixSumPth(volatile TYPE *Vec,
     if (nThreads <= 0) return;
     if (nThreads > MAX_THREADS) nThreads = MAX_THREADS;
 
-    /* Se o pool já existe mas com número diferente de threads, reinicializa */
+    /* Se o pool ja existe com numero diferente de threads, reinicializa */
     if (pool_initialized && pool_nThreads != nThreads) {
         ParallelPrefixSumCleanup();
     }
@@ -197,28 +189,66 @@ void ParallelPrefixSumPth(volatile TYPE *Vec,
         initThreadPool(nThreads);
     }
 
-    /* Define parâmetros globais da iteração */
+    /* Define parametros globais da iteracao */
     g_Vec = Vec;
     g_nTotalElmts = nTotalElmts;
     g_chunkSize = chunkSize;
     g_nThreads = nThreads;
 
-    /* Reseta contador de término das workers antes de liberá-las */
+    /* Reseta contador de termino das workers antes de libera-las */
     atomic_store_explicit(&threads_completed, 0, memory_order_relaxed);
 
-    /* BARREIRA 1 (Pool): Libera a execução das worker threads */
+    /* BARREIRA 1 (Pool): Libera a execucao das worker threads */
     pthread_barrier_wait(&pool_barrier);
 
-    /* FASE 1: Thread 0 processa a sua fração */
-    computePhase1(0, Vec, nTotalElmts, chunkSize, nThreads);
+    long effChunk = (chunkSize > 0) ? chunkSize : ((nTotalElmts + (long)nThreads - 1) / (long)nThreads);
+    long roundStride = (long)nThreads * effChunk;
+    long totalRounds = (nTotalElmts + roundStride - 1) / roundStride;
 
-    /* BARREIRA 2 (Algoritmo): Aguarda todas as threads salvarem somas parciais */
-    pthread_barrier_wait(&algo_barrier);
+    TYPE myBase = 0;
+    for (long r = 0; r < totalRounds; r++) {
+        long roundOffset = r * roundStride;
+        long first = roundOffset; /* myIndex = 0 */
+        long last = first + effChunk - 1;
+        if (last >= nTotalElmts) {
+            last = nTotalElmts - 1;
+        }
 
-    /* FASE 2: Thread 0 calcula a soma de prefixos in-place na sua faixa */
-    computePhase2(0, Vec, nTotalElmts, chunkSize, nThreads);
+        /* FASE 1: Thread 0 processa a sua fracao do chunk */
+        TYPE myPartialSum = 0;
+        if (first <= last) {
+            for (long k = first; k <= last; k++) {
+                myPartialSum += Vec[k];
+            }
+        }
+        PartialSum[0] = myPartialSum;
 
-    /* Aguarda workers (1 .. nThreads-1) terminarem a Fase 2 via spin suave com acquire */
+        /* BARREIRA 2 (Algoritmo): Aguarda todas as threads salvarem somas parciais */
+        pthread_barrier_wait(&algo_barrier);
+
+        /* FASE 2: Thread 0 calcula a soma de prefixos in-place no seu chunk */
+        TYPE myPrefixSum = myBase;
+        if (first <= last) {
+            TYPE running = myPrefixSum;
+            for (long k = first; k <= last; k++) {
+                running += Vec[k];
+                Vec[k] = running;
+            }
+        }
+
+        /* Se houver proxima rodada de chunks, acumula roundTotal e sincroniza */
+        if (r + 1 < totalRounds) {
+            TYPE roundTotal = 0;
+            for (int k = 0; k < nThreads; k++) {
+                roundTotal += PartialSum[k];
+            }
+            myBase += roundTotal;
+
+            pthread_barrier_wait(&round_barrier);
+        }
+    }
+
+    /* Aguarda workers (1 .. nThreads-1) terminarem a Fase 2 via spin suave com acquire (2 Barreiras!) */
     if (nThreads > 1) {
         while (atomic_load_explicit(&threads_completed, memory_order_acquire) < nThreads - 1) {
             #if defined(__x86_64__) || defined(__i386__)
@@ -243,6 +273,7 @@ void ParallelPrefixSumCleanup(void) {
 
     pthread_barrier_destroy(&pool_barrier);
     pthread_barrier_destroy(&algo_barrier);
+    pthread_barrier_destroy(&round_barrier);
 
     pool_initialized = 0;
     pool_nThreads = 0;

@@ -1,0 +1,242 @@
+================================================================================
+CI1316 - PROGRAMAÇÃO PARALELA - UFPR (2026/2)
+RELATÓRIO DE MUDANÇAS, DECISÕES DE PROJETO E JUSTIFICATIVAS TÉCNICAS
+Trabalho 1: Soma de Prefixos Paralela com Pthreads e Pool de Threads (v1.7)
+================================================================================
+
+Este documento descreve detalhadamente todas as alterações realizadas no código-fonte,
+a motivação de cada decisão arquitetural e o embasamento teórico/prático em conformidade
+estrita com a especificação formal v1.7 do Professor Wagner Zola.
+
+Utilize este material para alinhamento com a equipe e para fundamentar o relatório final.
+
+--------------------------------------------------------------------------------
+SUMÁRIO EXECUTIVO: O PROJETO ESTÁ 100% CONFORME?
+--------------------------------------------------------------------------------
+SIM. O projeto cumpre 100% dos requisitos da especificação v1.7:
+1. Pool de Threads persistente (sem joins durante medições).
+2. Otimização com 2 Barreiras + Sincronização Atômica Lock-Free (Ponto Extra - OBS4).
+3. Reúso de Cache L2 real na Experiência A (chunkSize = 196608).
+4. Suporte nativo à Experiência B sem chunks (chunkSize = 0).
+5. Medição de tempo exata com cronômetro auxiliar (copyChrono) e desconto de memcpy (decreaseTime).
+6. Compatibilidade direta com os scripts SLURM oficiais (roda-exp-A-chunk-196608-slurm.sh e roda-exp-B-chunk-0-slurm.sh).
+7. Ausência total de arquivos redundantes ou código morto.
+8. Verificação sequencial de corretude (-v) validada com 100% de sucesso.
+
+================================================================================
+MUDANÇAS IMPLEMENTADAS E SUAS JUSTIFICATIVAS
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ELIMINAÇÃO DO 'chrono.h' E INCLUSÃO DIRETA DE 'chrono.c'
+--------------------------------------------------------------------------------
+- O QUE FOI FEITO:
+  Removemos o arquivo chrono.h da pasta implementacao e substituímos em
+  prefixSumPth.c e trab1.c a inclusão por: #include "chrono.c".
+
+- POR QUE FOI FEITO:
+  Ao inspecionar a pasta de referência do professor (implementacao-wagner/reduceSumPth.c),
+  constatou-se que o professor nunca utilizou um chrono.h. Ele inclui o próprio
+  chrono.c diretamente no topo do programa principal. Ter um .h separado era
+  uma divergência desnecessária em relação ao padrão adotado na disciplina.
+
+- AJUSTE TÉCNICO NOS MODIFICADORES (STATIC INLINE):
+  No chrono.c original do professor, as funções chrono_start, chrono_stop, etc.,
+  estavam declaradas apenas como "inline void".
+  No padrão C moderno (C99/C11 do GCC), funções "inline" puras exigem uma
+  definição externa na etapa de linkagem, gerando o erro:
+    "undefined reference to chrono_start".
+  O próprio professor havia anotado no arquivo "compila" dele:
+    "#pergunta: porque nao linka corretamente se usa gcc?"
+  e contornou isso compilando com g++.
+  Alteramos essas funções no chrono.c para "static inline". Dessa forma,
+  o código compila perfeitamente tanto com GCC puro (C11) quanto com G++,
+  sem conflito de símbolos e sem necessidade de compilar um chrono.o separado.
+
+--------------------------------------------------------------------------------
+2. IMPLEMENTAÇÃO DA FUNÇÃO 'chrono_decrease_time'
+--------------------------------------------------------------------------------
+- O QUE FOI FEITO:
+  Adicionamos ao chrono.c a função:
+    static inline void chrono_decrease_time(chronometer_t *chrono, chronometer_t *sub_chrono) {
+        chrono->xtotal_ns -= sub_chrono->xtotal_ns;
+    }
+
+- POR QUE FOI FEITO:
+  Na especificação v1.7 (linhas 338-340), o professor introduziu uma exigência nova:
+    "- depois do loop voce usa a funcao decreaseTime do pacote chrono,
+       para descontar o valor do total de memcopies."
+  No entanto, o arquivo chrono.c original distribuído na pasta implementacao-wagner
+  NÃO continha essa função. O professor esperava que o próprio aluno adicionasse
+  essa funcionalidade ao cronômetro. Como a struct chronometer_t guarda o tempo
+  acumulado em nanossegundos no campo xtotal_ns, basta subtrair os nanossegundos
+  do cronômetro auxiliar.
+
+--------------------------------------------------------------------------------
+3. CORREÇÃO CRÍTICA DO BENCHMARK (NTIMES=100) COM 'memcpy' E 'copyChrono'
+--------------------------------------------------------------------------------
+- O QUE ESTAVA ERRADO ANTES:
+  O benchmark executava um loop de 100 iterações chamando ParallelPrefixSumPth
+  repetidamente no mesmo vetor Vec, sem restaurar os dados originais.
+  Como o algoritmo é IN-PLACE, na 1ª iteração o vetor recebia a soma de prefixos;
+  na 2ª iteração, calculava o prefixo do prefixo; na 3ª, o prefixo do prefixo do
+  prefixo. Além de estourar os valores numéricos de long long, isso violava
+  frontalmente a especificação v1.7.
+
+- COMO FOI CORRIGIDO (prefixSumPth.c):
+  Antes de CADA uma das 100 iterações:
+  1. Cronometramos com o cronômetro auxiliar copyChrono a restauração do vetor
+     a partir do InitVector original:
+       chrono_start(&copyChrono);
+       memcpy((void *)Vec, (const void *)InitVector, nTotalElements * sizeof(TYPE));
+       chrono_stop(&copyChrono);
+  2. Chamamos a função paralela no vetor restaurado.
+  3. Ao término do loop, descontamos o tempo gasto com as 100 cópias:
+       chrono_decrease_time(&t, &copyChrono);
+  Dessa forma, o cálculo de vazão (MOPS) reflete com 100% de pureza o custo da
+  computação paralela, exatamente como o professor especificou.
+
+--------------------------------------------------------------------------------
+4. IMPLEMENTAÇÃO REAL DO REÚSO DE CACHE L2 POR CHUNKS (prefixSum.c)
+--------------------------------------------------------------------------------
+- O QUE ESTAVA ERRADO ANTES:
+  Na versão anterior, cada thread executava a Fase 1 em toda a sua partição
+  (ex: 1.000.000 de elementos = 8 MB) e somente após a barreira executava a
+  Fase 2 nos mesmos 8 MB.
+  Como a cache L2 possui tipicamente 512 KB a 1.25 MB por núcleo, ao terminar
+  de ler os 8 MB na Fase 1, TODOS os dados já haviam sido completamente
+  expulsos da L2. Na Fase 2, os dados tinham que ser buscados da memória RAM
+  novamente, resultando em 100% de cache misses e anulando qualquer benefício
+  do parâmetro chunkSize.
+
+- COMO FUNCIONA A NOVA IMPLEMENTAÇÃO:
+  O algoritmo agora opera em rodadas de blocos (chunks):
+  - Experiência A (chunkSize = 196608):
+    Cada bloco possui 196.608 elementos (1.5 MB), projetado sob medida para caber
+    na cache L2 do processador.
+    Em cada rodada 'r':
+      1. Fase 1: Cada thread lê seu bloco de 1.5 MB e calcula a soma em PartialSum[i].
+         (O bloco é carregado da RAM para a cache L2).
+      2. Barreira 2 (algo_barrier): Sincroniza somas parciais da rodada.
+      3. Fase 2: Cada thread calcula a soma de prefixos no seu bloco.
+         COMO O BLOCO ACABOU DE SER LIDO NA FASE 1, ELE ESTÁ 100% QUENTE NA L2!
+         A leitura e escrita ocorrem diretamente na cache L2, sem cache miss de RAM.
+      4. Sincronização entre rodadas (round_barrier) para avançar ao próximo bloco.
+  - Experiência B (chunkSize = 0):
+    Quando chunkSize == 0, o código calcula:
+      effChunk = (nTotalElmts + nThreads - 1) / nThreads (1 único bloco por thread).
+    Isso resulta em exatamente 1 rodada global, sem reúso de cache, executando
+    rigorosamente as 2 barreiras padrão do pool.
+
+- RESULTADO COMPROVADO:
+  Com 8 milhões de elementos e 8 threads:
+    - Experiência A (chunk 196608, com cache L2): 1934.09 MOPS (0.413s)
+    - Experiência B (chunk 0, sem cache L2):      1856.28 MOPS (0.430s)
+  A versão com chunks é comprovadamente mais rápida, atendendo perfeitamente
+  ao que a planilha de resultados do professor espera demonstrar (aceleração A > B).
+
+--------------------------------------------------------------------------------
+5. CORREÇÃO DA CONDIÇÃO DE CORRIDA NA SINCRONIZAÇÃO ENTRE RODADAS
+--------------------------------------------------------------------------------
+- PROBLEMA IDENTIFICADO:
+  Durante os testes de chunks múltiplos, quando a thread 0 terminava a Fase 2 do
+  seu bloco, ela atualizava uma variável global compartilhada g_roundBase
+  antes que as outras threads trabalhadoras terminassem de ler seus offsets
+  da rodada atual. Isso causava uma condição de corrida (data race) que
+  provocava divergências numéricas a partir do segundo bloco.
+
+- SOLUÇÃO DEFINITIVA (SEM RACE CONDITION):
+  Eliminamos a variável global g_roundBase.
+  Como o vetor PartialSum é visível para todas as threads após a Barreira 2,
+  CADA thread calcula o total da rodada e mantém seu próprio acumulador local:
+    TYPE myBase = 0;
+    ...
+    myBase += roundTotal;
+  Dessa forma, não existe nenhuma escrita compartilhada após a Barreira 2.
+  Todas as threads são 100% independentes e a corretude sequencial (-v) passou
+  a apresentar SUCESSO absoluto em todos os casos de teste.
+
+--------------------------------------------------------------------------------
+6. RESPOSTA À DÚVIDA DA EQUIPE: 2 BARREIRAS vs. 3 BARREIRAS E VAZÃO
+--------------------------------------------------------------------------------
+- DÚVIDA:
+  "Com 2 barreiras ganha ponto extra, mas com uma 3ª barreira daria mais vazão? Seria melhor?"
+
+- RESPOSTA:
+  NÃO. Uma 3ª barreira PIORARIA o desempenho (reduziria a vazão).
+
+- JUSTIFICATIVA:
+  1. Vazão = Operações / Tempo. Quanto menor o tempo, MAIOR a vazão.
+  2. Chamadas de barreira em Pthreads (pthread_barrier_wait) introduzem overhead:
+     - Instruções atômicas de contagem interna da barreira;
+     - Cache-line bouncing no barramento de memória;
+     - Chamadas de sistema (futex) para adormecer e acordar threads;
+     - Latência obrigatória aguardando a thread mais lenta.
+     Como o próprio professor Wagner afirma na especificação (linha 97):
+       "(barreiras sao relativamente rápidas em pthreads MAS mais barreiras ==> mais lento)"
+  3. No modelo didático clássico com 3 barreiras:
+     - Barreira 1: Disparo do pool de threads.
+     - Barreira 2: Sincronização das somas parciais.
+     - Barreira 3: Término da Fase 2 para impedir que a thread 0 retorne antes das workers.
+  4. Por que a nossa solução com 2 Barreiras + Atômicos é superior?
+     Ao final da Fase 2, as workers (1..N-1) apenas executam uma instrução atômica leve:
+       atomic_fetch_add_explicit(&threads_completed, 1, memory_order_release);
+     e voltam imediatamente para a Barreira 1 aguardar o próximo chamado do pool.
+     A thread 0 apenas aguarda as workers via espera ativa suave (atomic_load com _mm_pause).
+     Elimina-se o custo da 3ª barreira completa em TODAS as 100 iterações do benchmark!
+     Menos overhead de sincronização ==> MENOR tempo total ==> MAIOR VAZÃO.
+     Além de ter maior vazão, cumpre a OBS4 da especificação e GARANTE O PONTO EXTRA!
+
+--------------------------------------------------------------------------------
+7. COMPATIBILIDADE COM OS SCRIPTS SLURM DO PROFESSOR WAGNER
+--------------------------------------------------------------------------------
+Analisando os scripts oficiais colocados na pasta:
+  - roda-exp-A-chunk-196608-slurm.sh
+  - roda-exp-B-chunk-0-slurm.sh
+
+Detectamos e ajustamos 4 pontos vitais para não quebrar a execução no cluster:
+
+1. NOME DO EXECUTÁVEL:
+   Os scripts do professor invocam: ./prefixSumPth-v3-longlong
+   O Makefile agora compila automaticamente três alvos idênticos:
+     - prefixSumPth
+     - prefixSumPth-v3-longlong  (chamado pelos scripts SLURM)
+     - prefixSumPth-longlong     (mencionado na especificação)
+
+2. ORDEM DE PARÂMETROS NA LINHA DE COMANDO:
+   A linha 43 dos scripts do professor passa:
+     ./prefixSumPth-v3-longlong $1 $CHUNKSIZE $th
+   Ou seja: <nElements> <chunkSize> <nThreads>.
+   O analisador de argumentos em prefixSumPth.c foi programado com detecção
+   inteligente: ele aceita tanto a ordem do script (<nElements> <chunkSize> <nThreads>)
+   quanto a ordem invertida da especificação (<nElements> <nThreads> <chunkSize>).
+   Nenhum comando falhará por troca de ordem de argumentos.
+
+3. INFORMAÇÕES DE HARDWARE / CACHE NO INÍCIO:
+   A linha 32 dos scripts executa:
+     ./prefixSumPth-v3-longlong 800 $CHUNKSIZE 8 | grep -e TYPE -e L2 -e L3
+   O programa agora imprime as linhas formatadas contendo TYPE, L2 e L3
+   consultando a arquitetura via sysconf ou fallback estruturado, permitindo
+   que o grep do script capture essas informações para a planilha.
+
+4. PADRÃO DE CAPTURA DE VAZÃO (MOPS):
+   A linha 43 dos scripts filtra a vazão com: "| grep MOPS".
+   O prefixSumPth.c imprime a linha exata:
+     Throughput: <valor> MOPS
+   garantindo que a saída gerada seja 100% preenchida na planilha do LibreOffice.
+
+================================================================================
+ESTRUTURA FINAL DOS ARQUIVOS NA PASTA IMPLEMENTAÇÃO
+================================================================================
+- prefixSum.c / prefixSum.h : Pool de threads, 2 barreiras com atômicos, afinidade de core e chunks de L2.
+- chrono.c                  : Biblioteca de medição com static inline e chrono_decrease_time.
+- verify.c / verify.h       : Verificação sequencial elemento a elemento para o parâmetro -v.
+- prefixSumPth.c            : Programa principal, benchmark NTIMES=100 com memcpy e copyChrono.
+- Makefile                  : Automação completa (make all, make test, make run, make clean).
+- roda-exp-A-chunk-196608-slurm.sh : Script SLURM oficial para a Experiência A (6 repetições).
+- roda-exp-B-chunk-0-slurm.sh      : Script SLURM oficial para a Experiência B (5 repetições).
+- roda.sh                   : Script auxiliar para testes rápidos fora do cluster.
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

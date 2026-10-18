@@ -12,5 +12,5 @@
  */
 
 #include "prefixSum.h"
-#include "chrono.h"
+#include "chrono.c"
 #include "verify.h"
