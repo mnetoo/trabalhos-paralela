@@ -1,0 +1,108 @@
+USAGE: sbatch roda-exp-A-slurm.sh <nElements>
+/var/spool/slurmd/job18977/slurm_script rodando no host  wz10
+SLURM_JOB_NAME:  t1-expA
+SLURM_NODELIST:  wz10
+SLURM_JOB_NODELIST:  wz10
+SLURM_JOB_CPUS_PER_NODE:  8
+nt  10
+MAX_EXECS  6
+-------rodando a experiencia A, com 1/4 do L2, i.e. chunkSize= 196608  elementos long long
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+(tempo acumulado: 0 segundos)
+Executando 6 vezes com 8000000 elementos e 1 threads: (tempo acumulado: 0 segundos)
+Throughput: 247.925566 MOPS
+Throughput: 248.300869 MOPS
+Throughput: 248.119915 MOPS
+Throughput: 247.977516 MOPS
+Throughput: 247.737244 MOPS
+Throughput: 247.594952 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 2 threads: (tempo acumulado: 40 segundos)
+Throughput: 416.396489 MOPS
+Throughput: 413.953407 MOPS
+Throughput: 415.017427 MOPS
+Throughput: 418.342595 MOPS
+Throughput: 412.675087 MOPS
+Throughput: 419.675572 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 3 threads: (tempo acumulado: 73 segundos)
+Throughput: 400.272624 MOPS
+Throughput: 413.252220 MOPS
+Throughput: 406.363146 MOPS
+Throughput: 412.097448 MOPS
+Throughput: 413.292464 MOPS
+Throughput: 415.035411 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 4 threads: (tempo acumulado: 106 segundos)
+Throughput: 493.579641 MOPS
+Throughput: 494.376045 MOPS
+Throughput: 496.457854 MOPS
+Throughput: 484.217565 MOPS
+Throughput: 504.407776 MOPS
+Throughput: 493.818346 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 5 threads: (tempo acumulado: 137 segundos)
+Throughput: 450.566098 MOPS
+Throughput: 434.979736 MOPS
+Throughput: 450.654144 MOPS
+Throughput: 433.833385 MOPS
+Throughput: 455.257771 MOPS
+Throughput: 443.083567 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 6 threads: (tempo acumulado: 169 segundos)
+Throughput: 500.048158 MOPS
+Throughput: 464.979808 MOPS
+Throughput: 501.977917 MOPS
+Throughput: 487.969305 MOPS
+Throughput: 497.066484 MOPS
+Throughput: 482.211362 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 7 threads: (tempo acumulado: 200 segundos)
+Throughput: 479.084211 MOPS
+Throughput: 464.429304 MOPS
+Throughput: 477.752617 MOPS
+Throughput: 477.210179 MOPS
+Throughput: 489.681216 MOPS
+Throughput: 471.226716 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 8 threads: (tempo acumulado: 231 segundos)
+Throughput: 439.031120 MOPS
+Throughput: 515.773701 MOPS
+Throughput: 436.922312 MOPS
+Throughput: 517.924997 MOPS
+Throughput: 419.391196 MOPS
+Throughput: 517.310807 MOPS
+nao executado, j= 7
+nao executado, j= 8
+nao executado, j= 9
+nao executado, j= 10
+O tempo total dessa shell foi de 263 segundos
+SLURM_JOB_NAME:  t1-expA
+SLURM_NODELIST:  wz10
+SLURM_JOB_NODELIST:  wz10
+SLURM_JOB_CPUS_PER_NODE:  8
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+             18977     debug  t1-expA   nobody  R       4:24      1 wz10

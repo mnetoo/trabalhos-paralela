@@ -1,3 +1,11 @@
+/*
+ * CI1316 - Programação Paralela - Trabalho 1: Prefix Sum Paralelo com Pthreads
+ *
+ * Autores:
+ *   Henrique Villela Silva (GRR20242612)
+ *   Marcus Sebastião Adriano Rocha Neto (GRR20240710)
+ */
+
 #define _GNU_SOURCE
 
 #include "prefixSum.h"
@@ -8,6 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 
+// Mostra informacoes do tipo e tamanhos de cache L2/L3 da maquina
 static void print_cache_and_type_info(void) {
     printf("TYPE: long long (%zu bytes)\n", sizeof(TYPE));
 
@@ -51,10 +60,8 @@ int main(int argc, char *argv[]) {
     long arg2 = atol(argv[2]);
     long arg3 = atol(argv[3]);
 
-    /* Deteccao inteligente de ordem de argumentos para suportar:
-     * 1) Scripts SLURM do professor: <nElements> <chunkSize> <nThreads>
-     * 2) Linha 173 da especificacao: <nElements> <nThreads> <chunkSize>
-     */
+    // Aceita tanto <nElements> <chunkSize> <nThreads> (usado nos scripts slurm)
+    // quanto <nElements> <nThreads> <chunkSize>
     if (arg2 > MAX_THREADS && arg3 <= MAX_THREADS) {
         chunkSize = arg2;
         nThreads = (int)arg3;
@@ -62,14 +69,12 @@ int main(int argc, char *argv[]) {
         nThreads = (int)arg2;
         chunkSize = arg3;
     } else if (arg2 == 0 && arg3 > 0 && arg3 <= MAX_THREADS) {
-        /* Script de Exp B: chunkSize=0, nThreads=th */
         chunkSize = 0;
         nThreads = (int)arg3;
     } else if (arg3 == 0 && arg2 > 0 && arg2 <= MAX_THREADS) {
         nThreads = (int)arg2;
         chunkSize = 0;
     } else {
-        /* Padrao do script SLURM do professor: <nElements> <chunkSize> <nThreads> */
         chunkSize = arg2;
         nThreads = (int)arg3;
     }
@@ -95,10 +100,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Imprime informacoes de tipo e cache esperadas pelos scripts SLURM */
     print_cache_and_type_info();
 
-    /* Alocacao do vetor de trabalho e do vetor de copia inicial */
     volatile TYPE *Vec = (volatile TYPE *)malloc(nTotalElements * sizeof(TYPE));
     TYPE *InitVector = (TYPE *)malloc(nTotalElements * sizeof(TYPE));
 
@@ -109,19 +112,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Inicializacao sequencial com semente fixa */
+    // Inicializa o vetor de entrada conforme a especificacao
     srand(42);
     for (long i = 0; i < nTotalElements; i++) {
         int r = rand();
         InitVector[i] = (r % 1000) - 500;
     }
 
-    /* Medicao de tempo rigorosamente conforme a especificacao v1.7:
-     * - Loop de NTIMES (100) chamadas
-     * - memcpy antes de CADA chamada para manter operacao in-place intacta
-     * - Cronometro auxiliar copyChrono medindo o tempo de memcpy
-     * - Desconto do tempo de cópia ao final com chrono_decrease_time
-     */
+    // Medicao de tempo para NTIMES chamadas descontando o tempo do memcpy
     chronometer_t t, copyChrono;
     chrono_reset(&t);
     chrono_reset(&copyChrono);
@@ -138,10 +136,9 @@ int main(int argc, char *argv[]) {
 
     chrono_stop(&t);
 
-    /* Desconta o tempo total gasto com copias de memoria */
+    // Desconta o tempo gasto com as copias de memoria
     chrono_decrease_time(&t, &copyChrono);
 
-    /* Relatorio de tempo e vazao */
     chrono_report_TimeInLoop(&t, "ParallelPrefixSumPth", NTIMES);
 
     double total_time_in_seconds = (double)chrono_gettotal(&t) / 1.0e9;
@@ -155,14 +152,11 @@ int main(int argc, char *argv[]) {
     double MOPS = OPS / 1.0e6;
     printf("Throughput: %lf MOPS\n", MOPS);
 
-    /* Verificacao sequencial opcional (-v) sem influenciar as medicoes */
+    // Se o usuario passou -v, verifica se a saida bate com a soma sequencial
     if (verify_flag) {
-        memcpy((void *)Vec, (const void *)InitVector, nTotalElements * sizeof(TYPE));
-        ParallelPrefixSumPth(Vec, nTotalElements, chunkSize, nThreads);
         verifyPrefixSum(InitVector, Vec, nTotalElements);
     }
 
-    /* Finalizacao graciosa do pool e liberacao de memoria */
     ParallelPrefixSumCleanup();
     free((void *)Vec);
     free(InitVector);

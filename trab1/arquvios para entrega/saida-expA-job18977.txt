@@ -1,0 +1,606 @@
+/var/spool/slurmd/job18977/slurm_script rodando no host  wz10
+-------rodando a experiencia A, com 1/4 do L2, i.e. chunkSize= 196608  elementos long long
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+(tempo acumulado: 0 segundos)
+Executando 6 vezes com 8000000 elementos e 1 threads: (tempo acumulado: 0 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 3226774922 ns for 100 ops 
+        ==> each op takes 32267749 ns
+total_time_in_seconds: 3.226775 s
+time_per_call_in_seconds: 0.032268 s
+Throughput: 247925566.343546 OP/s
+Throughput: 247.925566 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 3221897707 ns for 100 ops 
+        ==> each op takes 32218977 ns
+total_time_in_seconds: 3.221898 s
+time_per_call_in_seconds: 0.032219 s
+Throughput: 248300868.851886 OP/s
+Throughput: 248.300869 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 3224247439 ns for 100 ops 
+        ==> each op takes 32242474 ns
+total_time_in_seconds: 3.224247 s
+time_per_call_in_seconds: 0.032242 s
+Throughput: 248119914.843794 OP/s
+Throughput: 248.119915 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 3226098931 ns for 100 ops 
+        ==> each op takes 32260989 ns
+total_time_in_seconds: 3.226099 s
+time_per_call_in_seconds: 0.032261 s
+Throughput: 247977516.223293 OP/s
+Throughput: 247.977516 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 3229227822 ns for 100 ops 
+        ==> each op takes 32292278 ns
+total_time_in_seconds: 3.229228 s
+time_per_call_in_seconds: 0.032292 s
+Throughput: 247737243.730461 OP/s
+Throughput: 247.737244 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 3231083642 ns for 100 ops 
+        ==> each op takes 32310836 ns
+total_time_in_seconds: 3.231084 s
+time_per_call_in_seconds: 0.032311 s
+Throughput: 247594952.232437 OP/s
+Throughput: 247.594952 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 2 threads: (tempo acumulado: 40 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1921245788 ns for 100 ops 
+        ==> each op takes 19212457 ns
+total_time_in_seconds: 1.921246 s
+time_per_call_in_seconds: 0.019212 s
+Throughput: 416396488.672484 OP/s
+Throughput: 416.396489 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1932584650 ns for 100 ops 
+        ==> each op takes 19325846 ns
+total_time_in_seconds: 1.932585 s
+time_per_call_in_seconds: 0.019326 s
+Throughput: 413953406.905100 OP/s
+Throughput: 413.953407 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1927629895 ns for 100 ops 
+        ==> each op takes 19276298 ns
+total_time_in_seconds: 1.927630 s
+time_per_call_in_seconds: 0.019276 s
+Throughput: 415017427.398842 OP/s
+Throughput: 415.017427 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1912308259 ns for 100 ops 
+        ==> each op takes 19123082 ns
+total_time_in_seconds: 1.912308 s
+time_per_call_in_seconds: 0.019123 s
+Throughput: 418342595.256239 OP/s
+Throughput: 418.342595 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1938571105 ns for 100 ops 
+        ==> each op takes 19385711 ns
+total_time_in_seconds: 1.938571 s
+time_per_call_in_seconds: 0.019386 s
+Throughput: 412675087.303543 OP/s
+Throughput: 412.675087 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1906234370 ns for 100 ops 
+        ==> each op takes 19062343 ns
+total_time_in_seconds: 1.906234 s
+time_per_call_in_seconds: 0.019062 s
+Throughput: 419675572.212036 OP/s
+Throughput: 419.675572 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 3 threads: (tempo acumulado: 73 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1998637810 ns for 100 ops 
+        ==> each op takes 19986378 ns
+total_time_in_seconds: 1.998638 s
+time_per_call_in_seconds: 0.019986 s
+Throughput: 400272623.682627 OP/s
+Throughput: 400.272624 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1935863769 ns for 100 ops 
+        ==> each op takes 19358637 ns
+total_time_in_seconds: 1.935864 s
+time_per_call_in_seconds: 0.019359 s
+Throughput: 413252219.918994 OP/s
+Throughput: 413.252220 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1968682466 ns for 100 ops 
+        ==> each op takes 19686824 ns
+total_time_in_seconds: 1.968682 s
+time_per_call_in_seconds: 0.019687 s
+Throughput: 406363145.817747 OP/s
+Throughput: 406.363146 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1941288411 ns for 100 ops 
+        ==> each op takes 19412884 ns
+total_time_in_seconds: 1.941288 s
+time_per_call_in_seconds: 0.019413 s
+Throughput: 412097447.997386 OP/s
+Throughput: 412.097448 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1935675267 ns for 100 ops 
+        ==> each op takes 19356752 ns
+total_time_in_seconds: 1.935675 s
+time_per_call_in_seconds: 0.019357 s
+Throughput: 413292463.688849 OP/s
+Throughput: 413.292464 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1927546370 ns for 100 ops 
+        ==> each op takes 19275463 ns
+total_time_in_seconds: 1.927546 s
+time_per_call_in_seconds: 0.019275 s
+Throughput: 415035411.054729 OP/s
+Throughput: 415.035411 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 4 threads: (tempo acumulado: 106 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1620812395 ns for 100 ops 
+        ==> each op takes 16208123 ns
+total_time_in_seconds: 1.620812 s
+time_per_call_in_seconds: 0.016208 s
+Throughput: 493579640.967640 OP/s
+Throughput: 493.579641 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1618201382 ns for 100 ops 
+        ==> each op takes 16182013 ns
+total_time_in_seconds: 1.618201 s
+time_per_call_in_seconds: 0.016182 s
+Throughput: 494376045.465520 OP/s
+Throughput: 494.376045 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1611415741 ns for 100 ops 
+        ==> each op takes 16114157 ns
+total_time_in_seconds: 1.611416 s
+time_per_call_in_seconds: 0.016114 s
+Throughput: 496457853.578830 OP/s
+Throughput: 496.457854 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1652149897 ns for 100 ops 
+        ==> each op takes 16521498 ns
+total_time_in_seconds: 1.652150 s
+time_per_call_in_seconds: 0.016521 s
+Throughput: 484217564.915056 OP/s
+Throughput: 484.217565 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1586018373 ns for 100 ops 
+        ==> each op takes 15860183 ns
+total_time_in_seconds: 1.586018 s
+time_per_call_in_seconds: 0.015860 s
+Throughput: 504407775.861245 OP/s
+Throughput: 504.407776 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1620028916 ns for 100 ops 
+        ==> each op takes 16200289 ns
+total_time_in_seconds: 1.620029 s
+time_per_call_in_seconds: 0.016200 s
+Throughput: 493818346.141175 OP/s
+Throughput: 493.818346 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 5 threads: (tempo acumulado: 137 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1775544150 ns for 100 ops 
+        ==> each op takes 17755441 ns
+total_time_in_seconds: 1.775544 s
+time_per_call_in_seconds: 0.017755 s
+Throughput: 450566098.285982 OP/s
+Throughput: 450.566098 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1839166136 ns for 100 ops 
+        ==> each op takes 18391661 ns
+total_time_in_seconds: 1.839166 s
+time_per_call_in_seconds: 0.018392 s
+Throughput: 434979735.838285 OP/s
+Throughput: 434.979736 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1775197257 ns for 100 ops 
+        ==> each op takes 17751972 ns
+total_time_in_seconds: 1.775197 s
+time_per_call_in_seconds: 0.017752 s
+Throughput: 450654143.839746 OP/s
+Throughput: 450.654144 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1844025905 ns for 100 ops 
+        ==> each op takes 18440259 ns
+total_time_in_seconds: 1.844026 s
+time_per_call_in_seconds: 0.018440 s
+Throughput: 433833384.786425 OP/s
+Throughput: 433.833385 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1757246226 ns for 100 ops 
+        ==> each op takes 17572462 ns
+total_time_in_seconds: 1.757246 s
+time_per_call_in_seconds: 0.017572 s
+Throughput: 455257771.030205 OP/s
+Throughput: 455.257771 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1805528480 ns for 100 ops 
+        ==> each op takes 18055284 ns
+total_time_in_seconds: 1.805528 s
+time_per_call_in_seconds: 0.018055 s
+Throughput: 443083567.421767 OP/s
+Throughput: 443.083567 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 6 threads: (tempo acumulado: 169 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1599845908 ns for 100 ops 
+        ==> each op takes 15998459 ns
+total_time_in_seconds: 1.599846 s
+time_per_call_in_seconds: 0.015998 s
+Throughput: 500048158.388014 OP/s
+Throughput: 500.048158 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1720504819 ns for 100 ops 
+        ==> each op takes 17205048 ns
+total_time_in_seconds: 1.720505 s
+time_per_call_in_seconds: 0.017205 s
+Throughput: 464979807.766525 OP/s
+Throughput: 464.979808 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1593695605 ns for 100 ops 
+        ==> each op takes 15936956 ns
+total_time_in_seconds: 1.593696 s
+time_per_call_in_seconds: 0.015937 s
+Throughput: 501977916.918457 OP/s
+Throughput: 501.977917 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1639447382 ns for 100 ops 
+        ==> each op takes 16394473 ns
+total_time_in_seconds: 1.639447 s
+time_per_call_in_seconds: 0.016394 s
+Throughput: 487969305.257032 OP/s
+Throughput: 487.969305 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1609442653 ns for 100 ops 
+        ==> each op takes 16094426 ns
+total_time_in_seconds: 1.609443 s
+time_per_call_in_seconds: 0.016094 s
+Throughput: 497066483.548700 OP/s
+Throughput: 497.066484 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1659023539 ns for 100 ops 
+        ==> each op takes 16590235 ns
+total_time_in_seconds: 1.659024 s
+time_per_call_in_seconds: 0.016590 s
+Throughput: 482211361.800334 OP/s
+Throughput: 482.211362 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 7 threads: (tempo acumulado: 200 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1669852568 ns for 100 ops 
+        ==> each op takes 16698525 ns
+total_time_in_seconds: 1.669853 s
+time_per_call_in_seconds: 0.016699 s
+Throughput: 479084210.984068 OP/s
+Throughput: 479.084211 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1722544190 ns for 100 ops 
+        ==> each op takes 17225441 ns
+total_time_in_seconds: 1.722544 s
+time_per_call_in_seconds: 0.017225 s
+Throughput: 464429304.423244 OP/s
+Throughput: 464.429304 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1674506787 ns for 100 ops 
+        ==> each op takes 16745067 ns
+total_time_in_seconds: 1.674507 s
+time_per_call_in_seconds: 0.016745 s
+Throughput: 477752617.194976 OP/s
+Throughput: 477.752617 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1676410176 ns for 100 ops 
+        ==> each op takes 16764101 ns
+total_time_in_seconds: 1.676410 s
+time_per_call_in_seconds: 0.016764 s
+Throughput: 477210178.900751 OP/s
+Throughput: 477.210179 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1633715924 ns for 100 ops 
+        ==> each op takes 16337159 ns
+total_time_in_seconds: 1.633716 s
+time_per_call_in_seconds: 0.016337 s
+Throughput: 489681215.839089 OP/s
+Throughput: 489.681216 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1697696615 ns for 100 ops 
+        ==> each op takes 16976966 ns
+total_time_in_seconds: 1.697697 s
+time_per_call_in_seconds: 0.016977 s
+Throughput: 471226715.616677 OP/s
+Throughput: 471.226716 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
+Executando 6 vezes com 8000000 elementos e 8 threads: (tempo acumulado: 231 segundos)
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1822194291 ns for 100 ops 
+        ==> each op takes 18221942 ns
+total_time_in_seconds: 1.822194 s
+time_per_call_in_seconds: 0.018222 s
+Throughput: 439031119.761092 OP/s
+Throughput: 439.031120 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1551067838 ns for 100 ops 
+        ==> each op takes 15510678 ns
+total_time_in_seconds: 1.551068 s
+time_per_call_in_seconds: 0.015511 s
+Throughput: 515773701.446577 OP/s
+Throughput: 515.773701 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1830989123 ns for 100 ops 
+        ==> each op takes 18309891 ns
+total_time_in_seconds: 1.830989 s
+time_per_call_in_seconds: 0.018310 s
+Throughput: 436922311.525933 OP/s
+Throughput: 436.922312 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1544625196 ns for 100 ops 
+        ==> each op takes 15446251 ns
+total_time_in_seconds: 1.544625 s
+time_per_call_in_seconds: 0.015446 s
+Throughput: 517924996.997136 OP/s
+Throughput: 517.924997 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1907526929 ns for 100 ops 
+        ==> each op takes 19075269 ns
+total_time_in_seconds: 1.907527 s
+time_per_call_in_seconds: 0.019075 s
+Throughput: 419391195.918472 OP/s
+Throughput: 419.391196 MOPS
+-----------------------
+TYPE: long long (8 bytes)
+L2 cache: 6291456 bytes (6144.00 KB)
+L3 cache: 0 bytes (None / Not detected)
+
+ParallelPrefixSumPth deltaT(ns): 1546459091 ns for 100 ops 
+        ==> each op takes 15464590 ns
+total_time_in_seconds: 1.546459 s
+time_per_call_in_seconds: 0.015465 s
+Throughput: 517310806.768700 OP/s
+Throughput: 517.310807 MOPS
+-----------------------
+nao executado, j= 7
+-----------------------
+nao executado, j= 8
+-----------------------
+nao executado, j= 9
+-----------------------
+nao executado, j= 10
