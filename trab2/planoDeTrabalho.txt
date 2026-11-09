@@ -1,0 +1,169 @@
+PLANEJAMENTO DETALHADO: TRABALHO 2 - MULTIPLICACAO DE MATRIZES COM MPI
+
+Data de Entrega: 20/nov/2026
+
+
+
+FASE 1: ESTRUTURA BASICA E SETUP (SCAFFOLDING)
+
+Objetivo: Montar a espinha dorsal do arquivo unico mmul.c e preparar os dados.
+
+
+
+* Processamento de Argumentos (CLI): 
+
+  - Ler Nla, M, e Ncb da linha de comando. 
+
+  - Tratar a flag opcional -v (modo verificador) e -w blockWidth (versao B blocada).
+
+* Validacao de Restricoes (Versao B): 
+
+  - Checar se M e Ncb sao multiplos de 8.
+
+  - Checar se Nla e divisivel por nprocs.
+
+  - Encerrar com erro caso nao cumpram as regras.
+
+* Alocacao de Memoria: 
+
+  - Alocar matrizes A, B e C como vetores 1D contiguos de double (armazenamento row-major) para evitar falhas no MPI.
+
+* Funcoes Auxiliares: 
+
+  - Integrar gera_matriz e verifica_resultado fornecidas pelo professor.
+
+* Semente Fixa: 
+
+  - Chamar srand(1) no rank 0 estritamente ANTES de gerar a matriz A e, logo depois, a matriz B (garante reprodutibilidade).
+
+
+
+FASE 2: IMPLEMENTACAO DA VERSAO A (DIRETA/SIMPLES)
+
+Objetivo: Fazer a multiplicacao paralela basica sem otimizacao de cache.
+
+
+
+* Distribuicao de Dados:
+
+  - Processo 0 preenche A e B localmente.
+
+  - Usar MPI_Bcast para enviar B inteira para todos os nodos.
+
+  - Usar MPI_Scatter para fatiar e enviar faixas horizontais de A para os processos.
+
+* Kernel de Multiplicacao Local:
+
+  - Tres lacos FOR classicos: cada processo multiplica sua faixa de A pela matriz B inteira, somando na sua faixa de C.
+
+* Coleta de Dados:
+
+  - Usar MPI_Gather (ou Gatherv) para juntar as faixas de C calculadas de volta no nodo 0.
+
+
+
+FASE 3: IMPLEMENTACAO DA VERSAO B (BLOCADA/TILING)
+
+Objetivo: Maximizar o uso da memoria cache (L1/L2).
+
+
+
+* Logica de Ladrilhos:
+
+  - Manter a mesma estrutura de comunicacao da Versao A (Scatter/Bcast/Gather). Alterar apenas o kernel matematico local.
+
+* Lacos Externos (Blocos):
+
+  - Criar lacos ii, kk, e jj para varrer os blocos de tamanho w x w de A, B e C.
+
+* Lacos Internos (Escalar):
+
+  - Dentro dos blocos, usar lacos i, k, e j acessando a memoria linearmente (row-major). A linha k de B fica no cache enquanto e multiplicada pelo escalar a = A[i][k].
+
+* Testes de Correcao:
+
+  - Rodar localmente com -w 192 e a flag -v para garantir que a logica de blocos nao quebrou a matematica.
+
+
+
+FASE 4: INSTRUMENTACAO E METRICAS
+
+Objetivo: Medir tempo e calcular desempenho (GFLOPS).
+
+
+
+* Cronometragem:
+
+  - Usar a API chrono.h/chrono.c. 
+
+  - Medir APENAS a multiplicacao paralela e comunicacao (ignorar geracao e verificacao).
+
+* Calculo de Tempos:
+
+  - Registrar Tempo Total e Tempo de Computacao.
+
+  - Calcular Tempo de Comunicacao (Total - Computacao).
+
+* Calculo de Vazao:
+
+  - Calcular GFLOPS usando o Tempo Total.
+
+* Saidas no Terminal:
+
+  - Todos os processos imprimem rank e host.
+
+  - Processo 0 imprime os tempos divididos e os GFLOPS.
+
+
+
+FASE 5: EXECUCAO NO CLUSTER VIA SLURM
+
+Objetivo: Obter os dados reais para o relatorio no cluster Xeon.
+
+
+
+* Configuracao Slurm:
+
+  - Criar script .sh usando sbatch para garantir nodos em modo EXCLUSIVO.
+
+* Dimensoes Oficiais:
+
+  - A = 2304x960, B = 960x960, C = 2304x960.
+
+* Bateria de Testes:
+
+  - 10 repeticoes para cada cenario (para extrair a media).
+
+  - Variar np de 1 a 4 nodos para Versao A.
+
+  - Variar np de 1 a 4 nodos para Versao B (usando o melhor w, possivelmente 192).
+
+* Levantamento de Hardware:
+
+  - Rodar comandos lscpu e lstopo nos nodos e salvar a saida.
+
+
+
+FASE 6: RELATORIO E PLANILHA
+
+Objetivo: Analisar os dados e preparar a entrega final.
+
+
+
+* Planilha:
+
+  - Consolidar as medias das 10 repeticoes.
+
+  - Tabelas de vazao (GFLOPS) e aceleracao (Speedup) para Versao A e B (1 a 4 nodos).
+
+  - Aba extra comparando aceleracao da Versao B em relacao a A.
+
+* Relatorio PDF:
+
+  - Escrever o relatorio (ex: modelo SBC) descrevendo os metodos.
+
+  - Discutir a sobreposicao de comunicacao e computacao.
+
+  - Analisar o impacto da otimizacao de cache da Versao B contra a Versao A.
+
+  - Incluir em apendice as infos do lscpu e lstopo.
