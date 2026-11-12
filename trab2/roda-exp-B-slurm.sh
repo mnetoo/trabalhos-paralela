@@ -12,7 +12,7 @@ NLA=${1:-2304}
 M=${2:-960}
 NCB=${3:-960}
 BLOCK_W=${4:-192}
-MAX_EXECS=${5:-8}
+MAX_EXECS=${5:-10}
 
 echo "USAGE: sbatch roda-exp-B-slurm.sh [Nla] [M] [Ncb] [blockWidth] [MAX_EXECS]"
 echo "$0 rodando no host " `hostname`
