@@ -13,10 +13,10 @@ BLOCK_W = 192
 
 all: $(TARGET)
 
-$(TARGET): mmul.c chrono.c chrono.h
+$(TARGET): mmul.c mmul.h chrono.c chrono.h
 	$(CC) $(CFLAGS) mmul.c -o $(TARGET) $(LDFLAGS)
 
-native: CFLAGS += -march=native
+native: CFLAGS += -march=native -funroll-loops
 native: clean all
 
 debug: CFLAGS = -Wall -Wextra -g -O0 -std=gnu11 -DDEBUG=1
@@ -51,5 +51,5 @@ run-b: $(TARGET)
 	mpirun -np 4 ./$(TARGET) $(NLA) $(M) $(NCB) -w $(BLOCK_W)
 
 clean:
-	-rm -f *.o $(TARGET) $(TARGET).exe saida*.txt resultados*.txt
-	-del /f /q *.o $(TARGET).exe saida*.txt resultados*.txt 2>nul
+	-rm -f *.o $(TARGET) $(TARGET).exe
+	-del /f /q *.o $(TARGET).exe 2>nul

@@ -22,6 +22,7 @@
 #include <math.h>
 #include <unistd.h>
 
+#include "mmul.h"
 #include "chrono.c"
 
 /*
@@ -42,7 +43,7 @@
  *   - fixar a semente com srand(1) ANTES da primeira chamada, para que toda
  *     execucao use as mesmas matrizes e um erro possa ser reproduzido.
  */
-static void gera_matriz(double *X, size_t n)
+void gera_matriz(double *X, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         X[i] = (double)(rand() % 9 - 4);
@@ -125,10 +126,10 @@ size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
  *   Cada processo multiplica sua faixa horizontal A_local [nl x M]
  *   pela matriz B inteira [M x Ncb], produzindo sua faixa C_local [nl x Ncb].
  */
-static void mmul_kernel_versao_A(int nl, int M, int Ncb,
-                                 const double * restrict A_local,
-                                 const double * restrict B,
-                                 double * restrict C_local)
+void mmul_kernel_versao_A(int nl, int M, int Ncb,
+                          const double * restrict A_local,
+                          const double * restrict B,
+                          double * restrict C_local)
 {
     for (int i = 0; i < nl; i++) {
         const double * restrict A_row = &A_local[(size_t)i * M];
@@ -150,10 +151,10 @@ static void mmul_kernel_versao_A(int nl, int M, int Ncb,
  *   Enquanto um ladrilho w x w de B permanece em cache, cada linha k do bloco
  *   de B eh reaproveitada pelas w linhas i do bloco de A.
  */
-static void mmul_kernel_versao_B(int nl, int M, int Ncb, int w,
-                                 const double * restrict A_local,
-                                 const double * restrict B,
-                                 double * restrict C_local)
+void mmul_kernel_versao_B(int nl, int M, int Ncb, int w,
+                          const double * restrict A_local,
+                          const double * restrict B,
+                          double * restrict C_local)
 {
     memset(C_local, 0, (size_t)nl * (size_t)Ncb * sizeof(double));
 
@@ -332,7 +333,7 @@ int main(int argc, char *argv[])
 
     /* Inicializacao das matrizes A e B APENAS no nodo 0, FORA da medicao de tempo */
     if (rank == 0) {
-        srand(1);                        /* semente fixa: execucoes reproduziveis */
+        srand(MMUL_RAND_SEED);           /* semente fixa: execucoes reproduziveis */
         gera_matriz(A, (size_t)Nla * M); /* A [Nla x M] */
         gera_matriz(B, (size_t)M * Ncb); /* B [M x Ncb] */
     }

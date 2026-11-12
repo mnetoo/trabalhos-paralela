@@ -12,8 +12,9 @@ NLA=${1:-2304}
 M=${2:-960}
 NCB=${3:-960}
 BLOCK_W=${4:-192}
+MAX_EXECS=${5:-8}
 
-echo "USAGE: sbatch roda-exp-B-slurm.sh [Nla] [M] [Ncb] [blockWidth]"
+echo "USAGE: sbatch roda-exp-B-slurm.sh [Nla] [M] [Ncb] [blockWidth] [MAX_EXECS]"
 echo "$0 rodando no host " `hostname`
 
 SAIDA=saida-expB-w${BLOCK_W}-job$SLURM_JOBID.txt
@@ -25,7 +26,6 @@ echo "SLURM_JOB_NODELIST: " $SLURM_JOB_NODELIST | tee -a $SAIDA
 echo "SLURM_JOB_CPUS_PER_NODE: " $SLURM_JOB_CPUS_PER_NODE | tee -a $SAIDA
 
 NTIMES=10
-MAX_EXECS=10
 echo "nt " $NTIMES | tee -a $SAIDA
 echo "MAX_EXECS " $MAX_EXECS | tee -a $SAIDA
 
