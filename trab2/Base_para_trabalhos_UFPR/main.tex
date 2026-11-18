@@ -1,0 +1,510 @@
+\documentclass[12pt, a4paper, twoside, chapter=TITLE, subsection=TITLE, section=TITLE, subsubsection=TITLE, english, brazil]{abntex2}
+
+\usepackage[utf8]{inputenc}
+\usepackage[brazilian,hyperpageref]{backref}
+\usepackage{pacotes}
+
+\titulo{Multiplicação Paralela de Matrizes com MPI e Otimização de Cache por Ladrilhos (Tiling)}
+\tituloestrangeiro{Parallel Matrix Multiplication with MPI and Cache Tiling Optimization}
+\autor{Henrique Villela Silva (GRR20242612) \\ Marcus Sebastião Adriano Rocha Neto (GRR20240710)}
+\orientador{Prof. Dr. Wagner M. Nunan Zola}
+\data{2026}
+\instituicao{
+    Universidade Federal do Paraná (UFPR) \par
+    Setor de Ciências Exatas \par
+    Departamento de Informática (DInF)
+}
+\tipotrabalho{Trabalho Prático 2}
+\local{Curitiba, PR}
+\preambulo{Relatório técnico apresentado como requisito parcial para avaliação na disciplina de Programação Paralela (CI1316), Departamento de Informática, Universidade Federal do Paraná.}
+
+% Configurações de PDF e hyperlinks
+\makeatletter
+\hypersetup{
+    pdftitle={\@title},
+    pdfauthor={\@author},
+    pdfsubject={\imprimirpreambulo},
+    pdfkeywords={Programação Paralela}{MPI}{Multiplicação de Matrizes}{Loop Tiling}{Cache L2}{Cluster},
+    pdfcreator={LaTeX with abnTeX2},
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+\makeatother
+\setlength{\absparsep}{18pt}
+
+\begin{document}
+\pretextual 
+\imprimircapa
+\imprimirfolhaderosto*
+\cleardoublepage
+
+\begin{resumo}[Resumo] 
+    Este relatório apresenta a implementação e a avaliação experimental de dois algoritmos paralelos de multiplicação de matrizes ($C = A \times B$) em ponto flutuante de precisão dupla (\texttt{double}) utilizando a biblioteca de passagem de mensagens MPI (\textit{Message Passing Interface}) em linguagem C. Foram multiplicadas matrizes de dimensões $A[2304 \times 960]$ e $B[960 \times 960]$, resultando em $C[2304 \times 960]$ e totalizando $4,2467\text{ GFLOP}$ por multiplicação. O particionamento distribuído divide as linhas de $A$ e $C$ em faixas horizontais iguais entre os processos (\texttt{MPI\_Scatter} e \texttt{MPI\_Gather}) e difunde a matriz $B$ inteira para todos os nós (\texttt{MPI\_Bcast}). Foram avaliadas duas versões do kernel local: a \textbf{Versão A (Direta/Simples)}, com triplo laço aninhado convencional ($i \to j \to k$), e a \textbf{Versão B (Blocada com Ladrilhos)}, que divide as matrizes em submatrizes quadradas de lado $w = 192$ elementos ($288\text{ KB}$ por bloco) com permutação de laços internos ($i \to k \to j$) para maximizar o reúso na cache L2 e a localidade espacial. Os experimentos foram executados de 1 a 4 processos MPI distribuídos em 4 nós distintos (\texttt{wz10}, \texttt{wz11}, \texttt{wz12} e \texttt{wz15}, com 1 processo por nó) no cluster da disciplina. A blocagem com ladrilhos acelerou a computação em até $5,49\times$ e o tempo total em até $5,38\times$ ($+438,40\%$ em 1 nó e $+290,29\%$ em 4 nós), elevando a vazão média com 4 nós de $1,1948\text{ GFLOPS}$ (Versão A) para $4,6632\text{ GFLOPS}$ (Versão B, com pico de $4,7139\text{ GFLOPS}$). \\
+    \vspace{\onelineskip}
+    \noindent
+    \textbf{Palavras-chave}: Programação Paralela. MPI. Multiplicação de Matrizes. Blocagem por Ladrilhos. Cache L2. SLURM.
+\end{resumo}
+
+\begin{resumo}[Abstract]
+    \begin{otherlanguage*}{english}
+        This report presents the implementation and experimental evaluation of two parallel double-precision (\texttt{double}) matrix multiplication algorithms ($C = A \times B$) using the Message Passing Interface (MPI) in C. Matrices of dimensions $A[2304 \times 960]$ and $B[960 \times 960]$ were multiplied to produce $C[2304 \times 960]$, totaling $4.2467\text{ GFLOP}$ per execution. The distributed partitioning splits rows of $A$ and $C$ into equal horizontal strips across MPI ranks (\texttt{MPI\_Scatter} and \texttt{MPI\_Gather}) while broadcasting the entire matrix $B$ (\texttt{MPI\_Bcast}). Two local computation kernels were compared: \textbf{Version A (Direct/Simple)}, using the standard triple nested loop ($i \to j \to k$), and \textbf{Version B (Tiled/Blocked)}, which partitions the matrices into $w \times w$ square tiles ($w = 192$, $288\text{ KB}$ per tile) with loop permutation ($i \to k \to j$) to exploit L2 cache reuse and spatial locality. Experiments were conducted across 1 to 4 MPI processes mapped to 4 distinct cluster nodes (\texttt{wz10}, \texttt{wz11}, \texttt{wz12}, and \texttt{wz15}, with 1 process per node). Cache tiling accelerated pure computation by up to $5.49\times$ and total execution time by up to $5.38\times$ ($+438.40\%$ on 1 node and $+290.29\%$ on 4 nodes), increasing average throughput on 4 nodes from $1.1948\text{ GFLOPS}$ (Version A) to $4.6632\text{ GFLOPS}$ (Version B, with a peak of $4.7139\text{ GFLOPS}$). \\
+        \vspace{\onelineskip}
+        \noindent
+        \textbf{Keywords}: Parallel Programming. MPI. Matrix Multiplication. Loop Tiling. L2 Cache. SLURM.
+    \end{otherlanguage*}
+\end{resumo}
+
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents*
+\cleardoublepage
+
+\textual
+
+% -----------------------------------------------------------------------------
+\chapter{Implementação e Algoritmos Paralelos em MPI}
+% -----------------------------------------------------------------------------
+
+O objetivo deste trabalho é implementar e analisar o desempenho da multiplicação paralela de matrizes $C = A \times B$ em memória distribuída utilizando MPI (\textit{Message Passing Interface}), comparando a abordagem direta de multiplicação com a abordagem blocada por ladrilhos (\textit{Loop Tiling} / \textit{Blocking}) voltada ao aproveitamento da hierarquia de memória cache.
+
+\section{Dimensões do Problema e Volume de Operações}
+Nos experimentos oficiais realizados no cluster, foram adotadas as dimensões especificadas:
+\begin{itemize}
+    \item \textbf{Matriz $A$:} $N_{la} \times M = 2304 \times 960$ elementos do tipo \texttt{double} ($8\text{ bytes}$), ocupando $17.694.720\text{ bytes}$ ($\approx 16,88\text{ MiB}$).
+    \item \textbf{Matriz $B$:} $M \times N_{cb} = 960 \times 960$ elementos do tipo \texttt{double}, ocupando $7.372.800\text{ bytes}$ ($\approx 7,03\text{ MiB}$).
+    \item \textbf{Matriz Resultado $C$:} $N_{la} \times N_{cb} = 2304 \times 960$ elementos do tipo \texttt{double}, ocupando $17.694.720\text{ bytes}$ ($\approx 16,88\text{ MiB}$).
+\end{itemize}
+
+Para cada elemento $C[i][j]$ da matriz resultado, realizam-se $M$ multiplicações e $M$ adições em ponto flutuante de precisão dupla. O número total de operações de ponto flutuante (FLOPs) por execução é dado por:
+\begin{equation}
+    \text{Total FLOPs} = 2 \times N_{la} \times M \times N_{cb} = 2 \times 2304 \times 960 \times 960 = 4.246.732.800\text{ FLOPs} \approx 4,246733\text{ GFLOP}
+\end{equation}
+
+\section{Particionamento Distribuído e Comunicação Coletiva MPI}
+O paralelismo entre os $nprocs$ processos MPI ($nprocs \in \{1, 2, 3, 4\}$) baseia-se na decomposição por faixas horizontais de linhas das matrizes $A$ e $C$, armazenadas de forma contígua em memória na ordem \textit{row-major} (linha por linha):
+
+\begin{enumerate}
+    \item \textbf{Verificação de Restrições:} No início da execução, o programa confere se $M$ e $N_{cb}$ são múltiplos de 8 e se $N_{la}$ é perfeitamente divisível por $nprocs$ (\texttt{if (M \% 8 || Ncb \% 8 || Nla \% nprocs)}). Na Versão B, confere adicionalmente se a faixa local de linhas $nl = N_{la} / nprocs$, $M$ e $N_{cb}$ são múltiplos exatos do tamanho do ladrilho $w$ (\texttt{blockWidth}). Como $2304$ é divisível por $1, 2, 3$ e $4$ (gerando faixas de $2304, 1152, 768$ e $576$ linhas, todas múltiplas de $w = 192$) e $960 = 5 \times 192$, todas as divisões são exatas.
+    \item \textbf{Alocação Sob Demanda:} Apenas o processo raiz (\texttt{rank == 0}) aloca as matrizes completas $A[N_{la} \times M]$ e $C[N_{la} \times N_{cb}]$. Os demais processos ($rank > 0$) alocam apenas buffers locais do tamanho da sua faixa horizontal ($A_{local}[nl \times M]$ e $C_{local}[nl \times N_{cb}]$) além da matriz $B[M \times N_{cb}]$, economizando memória nos nós trabalhadores.
+    \item \textbf{Caso Sequencial ($nprocs = 1$):} Quando executado com apenas 1 processo, o algoritmo chama diretamente o kernel de multiplicação na memória do processo 0, sem invocar primitivas de comunicação MPI (tempo de comunicação igual a zero).
+    \item \textbf{Caso Paralelo ($nprocs > 1$):} Após sincronizar os relógios com \texttt{MPI\_Barrier(MPI\_COMM\_WORLD)}, o fluxo ocorre em três etapas cronometradas separadamente:
+    \begin{itemize}
+        \item \textbf{Distribuição de Dados (Comunicação Inicial):} O processo 0 distribui faixas contíguas de $nl \times M$ elementos da matriz $A$ entre todos os processos via \texttt{MPI\_Scatter} (usando \texttt{MPI\_IN\_PLACE} no rank 0 para evitar cópia redundante) e transmite a matriz $B$ inteira ($M \times N_{cb}$ elementos) para todos os processos via \texttt{MPI\_Bcast}.
+        \item \textbf{Computação Local:} Cada processo calcula de forma independente a sua submatriz resultado $C_{local}[nl \times N_{cb}] = A_{local}[nl \times M] \times B[M \times N_{cb}]$, empregando o kernel da Versão A ou da Versão B.
+        \item \textbf{Coleta de Resultados (Comunicação Final):} O processo 0 recolhe as faixas calculadas $C_{local}$ de todos os processos para formar a matriz $C$ completa por meio de \texttt{MPI\_Gather} (novamente com \texttt{MPI\_IN\_PLACE} no rank 0).
+    \end{itemize}
+\end{enumerate}
+
+\section{Versão A (Direta/Simples) vs. Versão B (Blocada com Ladrilhos)}
+
+\subsection{Versão A: Multiplicação Direta ($i \to j \to k$)}
+Na Versão A (\texttt{mmul\_kernel\_versao\_A}), cada processo calcula os elementos da sua faixa local percorrendo os três laços clássicos na ordem $i \to j \to k$:
+\begin{itemize}
+    \item Para calcular um único elemento $C[i][j]$, o laço interno em $k$ percorre a linha $i$ de $A$ com passo 1 (\texttt{A[i*M + k]}), mas percorre a coluna $j$ da matriz $B$ com \textbf{passo $N_{cb} = 960$ elementos} (\texttt{B[k*Ncb + j]}), o que equivale a saltos de $960 \times 8 = 7.680\text{ bytes}$ a cada iteração.
+    \item Como a matriz $B$ inteira ocupa $7,03\text{ MiB}$, ela excede os $6\text{ MB}$ da cache L2 compartilhada do processador Xeon E5410. Assim, ao avançar pelas colunas de $B$, as linhas de cache trazidas da memória principal são descartadas antes de poderem ser reutilizadas na próxima coluna $j+1$, gerando alta taxa de \textit{cache misses}.
+\end{itemize}
+
+\subsection{Versão B: Multiplicação Blocada com Ladrilhos ($w \times w$)}
+Na Versão B (\texttt{mmul\_kernel\_versao\_B}), ativada pela opção \texttt{-w <blockWidth>}, as matrizes locais são particionadas em ladrilhos quadrados (\textit{tiles}) de dimensão $w \times w$:
+\begin{itemize}
+    \item \textbf{Inicialização prévia:} Antes do acúmulo por blocos, a faixa local $C_{local}$ é zerada com \texttt{memset}.
+    \item \textbf{Três laços externos de ladrilhos ($ii \to kk \to jj$):} Percorrem os blocos de passo em passo de tamanho $w$. Fixar o bloco $(ii, kk)$ da matriz $A$ e percorrer a linha de blocos $jj$ de $B$ e $C$ permite manter o ladrilho de $A$ residente na cache enquanto ele multiplica todos os blocos correspondentes de $B$.
+    \item \textbf{Três laços internos com permutação ($i \to k \to j$):} Dentro de cada ladrilho $w \times w$, a ordem dos laços internos é alterada para $i \to k \to j$. O elemento \texttt{a\_ik = A[i*M + k]} é lido uma única vez e mantido em um registrador (\texttt{double a\_ik}), enquanto o laço mais interno em $j$ percorre \texttt{B[k*Ncb + j]} e \texttt{C[i*Ncb + j]} de forma contígua na memória (passo 1). Isso garante \textbf{localidade espacial máxima} (aproveitando 100\% dos 8 elementos \texttt{double} de cada linha de cache de 64 bytes) e permite ao compilador vetorizar o laço interno com instruções SIMD SSE2.
+\end{itemize}
+
+\section{Geração Reprodutível e Verificação Exata de Corretude}
+Para garantir que os testes não sofram com erros de arredondamento de ponto flutuante e possam ser verificados de forma exata:
+\begin{itemize}
+    \item \textbf{Função \texttt{gera\_matriz}:} Executada apenas no processo 0 fora da medição de tempo. Inicializa o gerador com semente fixa \texttt{srand(1)} no primeiro uso e preenche as matrizes $A$ e $B$ com valores inteiros pequenos convertidos para \texttt{double} no intervalo $[-4, 4]$ usando \texttt{(double)(rand() \% 9 - 4)}. Como inteiros pequenos e suas somas de produtos cabem com precisão exata nos 53 bits de mantissa do padrão IEEE 754 \texttt{double}, o resultado independe da ordem de soma dos termos.
+    \item \textbf{Função \texttt{verifica\_resultado}:} Executada apenas no processo 0 (fora do cronômetro) quando a opção \texttt{-v} é informada na linha de comando. Recalcula a multiplicação sequencial de referência e compara elemento por elemento contra a matriz $C$ com o operador de desigualdade exata (\texttt{C[i*Ncb + j] != soma}), retornando o número de elementos com erro (\texttt{size\_t}). Nos testes com 1, 2, 3 e 4 processos (\texttt{roda-verifica.sh}), tanto a Versão A quanto a Versão B obtiveram \textbf{0 erros} em todos os $2.211.840$ elementos da matriz $C$.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\chapter{Arquitetura do Cluster e Topologia de Hardware}
+% -----------------------------------------------------------------------------
+
+Os experimentos de desempenho foram executados no cluster da disciplina utilizando alocação exclusiva de 4 nós via SLURM (\texttt{\#SBATCH --exclusive}, \texttt{--nodes=4}, \texttt{--ntasks-per-node=1}), garantindo que cada processo MPI rodasse isolado em uma máquina física dedicada e que a comunicação entre todos os processos trafegasse pela rede de interconexão Ethernet.
+
+\section{Nós Alocados e Processadores (\texttt{wz10}, \texttt{wz11}, \texttt{wz12}, \texttt{wz15})}
+Conforme registrado nos arquivos de saída dos Jobs SLURM 19171, 19172 e 19173 (\texttt{SLURM\_NODELIST: wz[10-12,15]}), os 4 nós alocados possuem configuração idêntica de hardware, levantada com os utilitários \texttt{lscpu} (Apêndice~\ref{apendice:lscpu}) e \texttt{lstopo}:
+\begin{itemize}
+    \item \textbf{Modelo de CPU:} Intel(R) Xeon(R) CPU E5410 @ 2.33GHz (microarquitetura Harpertown, 45nm).
+    \item \textbf{Sockets e Núcleos por Nó:} Cada nó possui \textbf{2 Sockets físicos} com \textbf{4 núcleos por socket}, totalizando \textbf{8 núcleos físicos por nó} (32 núcleos físicos somando os 4 nós do cluster).
+    \item \textbf{Threads por Núcleo:} 1 thread por núcleo (\textit{sem Hyper-Threading}).
+    \item \textbf{Memória RAM por Nó:} $16\text{ GiB}$ de RAM principal (2 módulos FB-DIMM DDR2 de $8\text{ GiB}$), conforme ilustrado no diagrama de topologia.
+    \item \textbf{Rede de Interconexão:} Rede local Ethernet (\texttt{eth0}) interligando os nós \texttt{wz10}, \texttt{wz11}, \texttt{wz12} e \texttt{wz15}.
+\end{itemize}
+
+\section{Hierarquia de Memória Cache de Cada Nó}
+A hierarquia de cache de cada nó \texttt{wz} é composta por dois níveis (sem cache L3):
+\begin{itemize}
+    \item \textbf{Cache L1 de Dados (L1d):} $32\text{ KiB}$ dedicada por núcleo físico ($256\text{ KiB}$ somando os 8 núcleos do nó).
+    \item \textbf{Cache L1 de Instruções (L1i):} $32\text{ KiB}$ dedicada por núcleo físico ($256\text{ KiB}$ no nó).
+    \item \textbf{Cache L2 Compartilhada:} \textbf{$6\text{ MiB}$ ($6.144\text{ KiB}$)} compartilhada por cada par de núcleos físicos, totalizando 4 bancos de $6\text{ MiB}$ ($24\text{ MiB}$ de L2 no nó). Como nos experimentos rodamos 1 processo MPI por nó (\texttt{--ntasks-per-node=1}), o processo ativo em cada nó dispõe de um banco inteiro de $6\text{ MiB}$ de cache L2 sem sofrer concorrência de outros processos naquele par de núcleos.
+\end{itemize}
+
+A Figura~\ref{fig:topology} apresenta a topologia física dos sockets, núcleos e bancos de cache L2 gerada pelo comando \texttt{lstopo} no cluster.
+
+\begin{figure}[htbp]
+    \centering
+    \caption{Topologia de hardware e hierarquia de cache gerada pelo utilitário \texttt{lstopo} nos nós \texttt{wz}.}
+    \includegraphics[width=0.88\textwidth]{topology.pdf}
+    \label{fig:topology}
+    \fonte{Gerado via utilitário \texttt{lstopo} no cluster da disciplina (Job SLURM 19171).}
+\end{figure}
+
+% -----------------------------------------------------------------------------
+\chapter{Metodologia Experimental e Dimensionamento do Ladrilho}
+% -----------------------------------------------------------------------------
+
+\section{Dimensionamento do Tamanho do Ladrilho ($w = 192$)}
+Para escolher a largura $w$ (\texttt{blockWidth}) do ladrilho na Versão B, é preciso atender simultaneamente às restrições de divisibilidade algébrica das dimensões das matrizes e à capacidade da cache L2 de $6\text{ MiB}$ ($6.144\text{ KiB}$) disponível para o núcleo executando o processo MPI:
+
+\begin{enumerate}
+    \item \textbf{Divisibilidade Exata:} O valor $w$ deve dividir perfeitamente a dimensão interna $M = 960$, o número de colunas $N_{cb} = 960$ e a altura da faixa local de linhas $nl = N_{la} / nprocs$ para todos os números de processos $nprocs \in \{1, 2, 3, 4\}$:
+    \begin{itemize}
+        \item Para $nprocs = 1$: $nl = 2304 / 1 = 2304 = 12 \times 192$;
+        \item Para $nprocs = 2$: $nl = 2304 / 2 = 1152 = 6 \times 192$;
+        \item Para $nprocs = 3$: $nl = 2304 / 3 = 768 = 4 \times 192$;
+        \item Para $nprocs = 4$: $nl = 2304 / 4 = 576 = 3 \times 192$;
+        \item Para $M$ e $N_{cb}$: $960 = 5 \times 192$.
+    \end{itemize}
+    Portanto, $w = 192$ é o maior divisor comum exato entre $576$, $768$, $1152$, $2304$ e $960$.
+
+    \item \textbf{Ocupação na Memória Cache L2:} Cada ladrilho quadrado de $192 \times 192$ elementos do tipo \texttt{double} ($8\text{ bytes}$) ocupa:
+    \begin{equation}
+        \text{Tamanho de 1 Ladrilho} = 192 \times 192 \times 8\text{ bytes} = 294.912\text{ bytes} = 288\text{ KiB}
+    \end{equation}
+    Durante a multiplicação de um bloco, o conjunto de trabalho ativo (\textit{working set}) é composto por 3 ladrilhos simultâneos (um de $A$, um de $B$ e um de $C$):
+    \begin{equation}
+        \text{Conjunto de 3 Ladrilhos Ativos} = 3 \times 288\text{ KiB} = 864\text{ KiB} \approx 0,84\text{ MiB}
+    \end{equation}
+    Mesmo considerando toda uma faixa horizontal de 5 ladrilhos da matriz $C$ ($5 \times 288\text{ KiB} = 1.440\text{ KiB}$) somada ao ladrilho fixo de $A$ ($288\text{ KiB}$) e ao ladrilho corrente de $B$ ($288\text{ KiB}$), o volume total é de apenas $2.016\text{ KiB}$ ($\approx 1,97\text{ MiB}$), que cabe com ampla folga dentro dos \textbf{$6\text{ MiB}$ ($6.144\text{ KiB}$)} da cache L2 do Xeon E5410.
+\end{enumerate}
+
+\section{Separação dos Tempos de Computação e Comunicação}
+Para avaliar não apenas o tempo total, mas também o peso da comunicação em rede frente ao processamento nos núcleos, a função \texttt{executa\_mmul\_mpi} utiliza dois cronômetros de alta precisão (\texttt{clock\_gettime(CLOCK\_MONOTONIC)} via biblioteca \texttt{chrono.c}):
+\begin{itemize}
+    \item \textbf{Tempo Total ($T_{\text{total}}$):} Medido por \texttt{total\_timer}, engloba todo o processo desde o início do \texttt{MPI\_Scatter} até o término do \texttt{MPI\_Gather}.
+    \item \textbf{Tempo de Computação ($T_{\text{comp}}$):} Medido por \texttt{comp\_timer}, envolve exclusivamente a chamada ao kernel local de multiplicação de matrizes (\texttt{mmul\_kernel\_versao\_A} ou \texttt{mmul\_kernel\_versao\_B}).
+    \item \textbf{Tempo de Comunicação ($T_{\text{comm}}$):} Obtido pela diferença líquida $T_{\text{comm}} = T_{\text{total}} - T_{\text{comp}}$, correspondendo ao tempo gasto nas operações coletivas \texttt{MPI\_Scatter}, \texttt{MPI\_Bcast} e \texttt{MPI\_Gather} através da rede Ethernet.
+\end{itemize}
+
+\section{Protocolo de Execução no SLURM}
+Para respeitar o limite de tempo de fila do cluster ($\le 5\text{ minutos}$ por job) e obter médias estatisticamente estáveis:
+\begin{itemize}
+    \item \textbf{Experiência A (Versão A --- Direta):} Submetida via \texttt{roda-exp-A-slurm.sh} (Job 19172), executando \textbf{8 repetições} para cada configuração de $1, 2, 3$ e $4$ processos MPI (tempo total do job: $247\text{ segundos}$).
+    \item \textbf{Experiência B (Versão B --- Blocada $w = 192$):} Submetida via \texttt{roda-exp-B-slurm.sh} (Job 19173), executando \textbf{10 repetições} para cada configuração de $1, 2, 3$ e $4$ processos MPI (tempo total do job: $91\text{ segundos}$).
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\chapter{Resultados Experimentais e Análise de Desempenho}
+% -----------------------------------------------------------------------------
+
+Todos os dados coletados, fórmulas de agregação e gráficos comparativos encontram-se na planilha \texttt{Planilha-MatMul-MPI-WZ-ExpA-ExpB.xlsx} e nos arquivos de log dos Jobs SLURM 19172 e 19173.
+
+\section{Experiência A --- Multiplicação Direta/Simples (Versão A)}
+As Tabelas~\ref{tab:expA_tempos} e~\ref{tab:expA_gflops} apresentam os tempos detalhados (Total, Computação e Comunicação), a vazão em GFLOPS e o Speedup das 8 execuções da Versão A para 1, 2, 3 e 4 processos MPI (distribuídos em 1 a 4 nós).
+
+\begin{table}[htbp]
+\centering
+\caption{Tempos de Execução em Segundos (Total, Computação e Comunicação) — Experiência A (Versão A Direta).}
+\label{tab:expA_tempos}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccccccc}
+\toprule
+ & \multicolumn{3}{c}{\textbf{1 Proc (\texttt{wz10})}} & \multicolumn{3}{c}{\textbf{2 Procs (\texttt{wz10,11})}} & \multicolumn{3}{c}{\textbf{3 Procs (\texttt{wz10-12})}} & \multicolumn{3}{c}{\textbf{4 Procs (\texttt{wz10-12,15})}} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+\textbf{Execução} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} \\
+\midrule
+Execução 1 & 12,8662 & 12,8662 & 0,0000 & 6,8442 & 6,5935 & 0,2507 & 4,5809 & 4,2963 & 0,2846 & 3,6206 & 3,2341 & 0,3865 \\
+Execução 2 & 12,8123 & 12,8123 & 0,0000 & 6,7961 & 6,5548 & 0,2413 & 4,5850 & 4,2999 & 0,2851 & 3,5378 & 3,2349 & 0,3028 \\
+Execução 3 & 12,8163 & 12,8163 & 0,0000 & 6,7746 & 6,5273 & 0,2473 & 4,5654 & 4,2433 & 0,3220 & 3,5371 & 3,2359 & 0,3012 \\
+Execução 4 & 12,7571 & 12,7571 & 0,0000 & 6,7846 & 6,5413 & 0,2434 & 4,5781 & 4,2924 & 0,2857 & 3,5448 & 3,2409 & 0,3039 \\
+Execução 5 & 12,8160 & 12,8160 & 0,0000 & 6,8094 & 6,5688 & 0,2406 & 4,5535 & 4,2306 & 0,3229 & 3,5510 & 3,2388 & 0,3121 \\
+Execução 6 & 12,9125 & 12,9125 & 0,0000 & 6,7917 & 6,5297 & 0,2620 & 4,5873 & 4,2687 & 0,3187 & 3,5721 & 3,2540 & 0,3182 \\
+Execução 7 & 12,8379 & 12,8379 & 0,0000 & 6,7921 & 6,5420 & 0,2502 & 4,5920 & 4,2561 & 0,3359 & \textbf{3,5298} & 3,2256 & 0,3043 \\
+Execução 8 & 12,8195 & 12,8195 & 0,0000 & 6,8085 & 6,5511 & 0,2574 & 4,5979 & 4,2578 & 0,3400 & 3,5431 & 3,2350 & 0,3082 \\
+\midrule
+\textbf{Média (s)} & \textbf{12,8297} & \textbf{12,8297} & \textbf{0,0000} & \textbf{6,8002} & \textbf{6,5511} & \textbf{0,2491} & \textbf{4,5800} & \textbf{4,2681} & \textbf{0,3119} & \textbf{3,5545} & \textbf{3,2374} & \textbf{0,3172} \\
+Mínimo (s) & 12,7571 & 12,7571 & 0,0000 & 6,7746 & 6,5273 & 0,2406 & 4,5535 & 4,2306 & 0,2846 & 3,5298 & 3,2256 & 0,3012 \\
+Máximo (s) & 12,9125 & 12,9125 & 0,0000 & 6,8442 & 6,5935 & 0,2620 & 4,5979 & 4,2999 & 0,3400 & 3,6206 & 3,2540 & 0,3865 \\
+\textbf{\% Tempo} & \textbf{100,0\%} & \textbf{100,0\%} & \textbf{0,00\%} & \textbf{100,0\%} & \textbf{96,34\%} & \textbf{3,66\%} & \textbf{100,0\%} & \textbf{93,19\%} & \textbf{6,81\%} & \textbf{100,0\%} & \textbf{91,08\%} & \textbf{8,92\%} \\
+\bottomrule
+\end{tabular}%
+}
+\fonte{Dados extraídos de \texttt{saida-expA-job19172.txt} nos nós \texttt{wz10}, \texttt{wz11}, \texttt{wz12} e \texttt{wz15}.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Vazão em GFLOPS e Speedup Médio — Experiência A (Versão A Direta).}
+\label{tab:expA_gflops}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Execução} & \textbf{1 Proc (\texttt{wz10})} & \textbf{2 Procs (\texttt{wz10,11})} & \textbf{3 Procs (\texttt{wz10-12})} & \textbf{4 Procs (\texttt{wz10-12,15})} \\
+\midrule
+Execução 1 & 0,3301 & 0,6205 & 0,9271 & 1,1729 \\
+Execução 2 & 0,3315 & 0,6249 & 0,9262 & 1,2004 \\
+Execução 3 & 0,3314 & 0,6269 & 0,9302 & 1,2006 \\
+Execução 4 & 0,3329 & 0,6259 & 0,9276 & 1,1980 \\
+Execução 5 & 0,3314 & 0,6237 & 0,9326 & 1,1959 \\
+Execução 6 & 0,3289 & 0,6253 & 0,9258 & 1,1889 \\
+Execução 7 & 0,3308 & 0,6252 & 0,9248 & \textbf{1,2031} \\
+Execução 8 & 0,3313 & 0,6237 & 0,9236 & 1,1986 \\
+\midrule
+\textbf{Média (GFLOPS)} & \textbf{0,3310} & \textbf{0,6245} & \textbf{0,9273} & \textbf{1,1948} \\
+Mínimo (GFLOPS) & 0,3289 & 0,6205 & 0,9236 & 1,1729 \\
+Máximo (GFLOPS) & 0,3329 & 0,6269 & 0,9326 & 1,2031 \\
+\textbf{Speedup Total ($T_1/T_p$)} & \textbf{1,00$\times$} & \textbf{1,89$\times$} & \textbf{2,80$\times$} & \textbf{3,61$\times$} \\
+\textbf{Speedup Computação} & \textbf{1,00$\times$} & \textbf{1,96$\times$} & \textbf{3,01$\times$} & \textbf{3,96$\times$} \\
+\textbf{Eficiência Paralela} & \textbf{100,0\%} & \textbf{94,3\%} & \textbf{93,3\%} & \textbf{90,2\%} \\
+\bottomrule
+\end{tabular}%
+}
+\fonte{Dados extraídos de \texttt{saida-expA-job19172.txt} nos nós \texttt{wz10}, \texttt{wz11}, \texttt{wz12} e \texttt{wz15}.}
+\end{table}
+
+\section{Experiência B --- Multiplicação Blocada com Ladrilhos ($w = 192$)}
+As Tabelas~\ref{tab:expB_tempos} e~\ref{tab:expB_gflops} apresentam os tempos detalhados, a vazão em GFLOPS e o Speedup das 10 execuções da Versão B com ladrilhos de $192 \times 192$ elementos.
+
+\begin{table}[htbp]
+\centering
+\caption{Tempos de Execução em Segundos (Total, Computação e Comunicação) — Experiência B (Versão B Blocada, $w = 192$).}
+\label{tab:expB_tempos}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccccccc}
+\toprule
+ & \multicolumn{3}{c}{\textbf{1 Proc (\texttt{wz10})}} & \multicolumn{3}{c}{\textbf{2 Procs (\texttt{wz10,11})}} & \multicolumn{3}{c}{\textbf{3 Procs (\texttt{wz10-12})}} & \multicolumn{3}{c}{\textbf{4 Procs (\texttt{wz10-12,15})}} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+\textbf{Execução} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} & \textbf{Total} & \textbf{Comp} & \textbf{Comm} \\
+\midrule
+Execução 1 & 2,3805 & 2,3805 & 0,0000 & 1,4520 & 1,1938 & 0,2583 & 1,0914 & 0,7917 & 0,2997 & 0,9067 & 0,5955 & 0,3112 \\
+Execução 2 & 2,3776 & 2,3776 & 0,0000 & 1,4926 & 1,1932 & 0,2994 & 1,0891 & 0,7936 & 0,2955 & 0,9271 & 0,5951 & 0,3320 \\
+Execução 3 & 2,3886 & 2,3886 & 0,0000 & 1,4354 & 1,1943 & 0,2411 & 1,0844 & 0,7921 & 0,2924 & 0,9210 & 0,5947 & 0,3262 \\
+Execução 4 & 2,3964 & 2,3964 & 0,0000 & 1,4367 & 1,1905 & 0,2461 & 1,0820 & 0,7894 & 0,2926 & 0,9168 & 0,5946 & 0,3222 \\
+Execução 5 & 2,3825 & 2,3825 & 0,0000 & 1,4314 & 1,1891 & 0,2423 & 1,0772 & 0,7882 & 0,2890 & \textbf{0,9009} & 0,5935 & 0,3074 \\
+Execução 6 & 2,3891 & 2,3891 & 0,0000 & 1,4566 & 1,1946 & 0,2619 & 1,0768 & 0,7894 & 0,2874 & 0,9023 & 0,5967 & 0,3055 \\
+Execução 7 & 2,3820 & 2,3820 & 0,0000 & 1,4341 & 1,1900 & 0,2441 & 1,0806 & 0,7895 & 0,2911 & 0,9067 & 0,5951 & 0,3115 \\
+Execução 8 & 2,3734 & 2,3734 & 0,0000 & 1,4532 & 1,1946 & 0,2586 & 1,0844 & 0,7903 & 0,2941 & 0,9092 & 0,5947 & 0,3145 \\
+Execução 9 & 2,3805 & 2,3805 & 0,0000 & 1,4256 & 1,1935 & 0,2321 & 1,0818 & 0,7902 & 0,2916 & 0,9087 & 0,5947 & 0,3140 \\
+Execução 10 & 2,3784 & 2,3784 & 0,0000 & 1,4328 & 1,1899 & 0,2430 & 1,0816 & 0,7897 & 0,2919 & 0,9084 & 0,5939 & 0,3145 \\
+\midrule
+\textbf{Média (s)} & \textbf{2,3829} & \textbf{2,3829} & \textbf{0,0000} & \textbf{1,4450} & \textbf{1,1923} & \textbf{0,2527} & \textbf{1,0829} & \textbf{0,7904} & \textbf{0,2925} & \textbf{0,9108} & \textbf{0,5949} & \textbf{0,3159} \\
+Mínimo (s) & 2,3734 & 2,3734 & 0,0000 & 1,4256 & 1,1891 & 0,2321 & 1,0768 & 0,7882 & 0,2874 & 0,9009 & 0,5935 & 0,3055 \\
+Máximo (s) & 2,3964 & 2,3964 & 0,0000 & 1,4926 & 1,1946 & 0,2994 & 1,0914 & 0,7936 & 0,2997 & 0,9271 & 0,5967 & 0,3320 \\
+\textbf{\% Tempo} & \textbf{100,0\%} & \textbf{100,0\%} & \textbf{0,00\%} & \textbf{100,0\%} & \textbf{82,51\%} & \textbf{17,49\%} & \textbf{100,0\%} & \textbf{72,99\%} & \textbf{27,01\%} & \textbf{100,0\%} & \textbf{65,31\%} & \textbf{34,69\%} \\
+\bottomrule
+\end{tabular}%
+}
+\fonte{Dados extraídos de \texttt{saida-expB-w192-job19173.txt} nos nós \texttt{wz10}, \texttt{wz11}, \texttt{wz12} e \texttt{wz15}.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Vazão em GFLOPS e Speedup Médio — Experiência B (Versão B Blocada, $w = 192$).}
+\label{tab:expB_gflops}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Execução} & \textbf{1 Proc (\texttt{wz10})} & \textbf{2 Procs (\texttt{wz10,11})} & \textbf{3 Procs (\texttt{wz10-12})} & \textbf{4 Procs (\texttt{wz10-12,15})} \\
+\midrule
+Execução 1 & 1,7840 & 2,9247 & 3,8912 & 4,6838 \\
+Execução 2 & 1,7861 & 2,8453 & 3,8992 & 4,5807 \\
+Execução 3 & 1,7779 & 2,9586 & 3,9161 & 4,6112 \\
+Execução 4 & 1,7721 & 2,9560 & 3,9247 & 4,6320 \\
+Execução 5 & 1,7824 & 2,9669 & 3,9424 & \textbf{4,7139} \\
+Execução 6 & 1,7775 & 2,9156 & \textbf{3,9439} & 4,7067 \\
+Execução 7 & 1,7828 & 2,9613 & 3,9299 & 4,6839 \\
+Execução 8 & \textbf{1,7893} & 2,9223 & 3,9162 & 4,6707 \\
+Execução 9 & 1,7840 & \textbf{2,9790} & 3,9255 & 4,6736 \\
+Execução 10 & 1,7855 & 2,9639 & 3,9264 & 4,6752 \\
+\midrule
+\textbf{Média (GFLOPS)} & \textbf{1,7822} & \textbf{2,9393} & \textbf{3,9215} & \textbf{4,6632} \\
+Mínimo (GFLOPS) & 1,7721 & 2,8453 & 3,8912 & 4,5807 \\
+Máximo (GFLOPS) & 1,7893 & 2,9790 & 3,9439 & 4,7139 \\
+\textbf{Speedup Total ($T_1/T_p$)} & \textbf{1,00$\times$} & \textbf{1,65$\times$} & \textbf{2,20$\times$} & \textbf{2,62$\times$} \\
+\textbf{Speedup Computação} & \textbf{1,00$\times$} & \textbf{2,00$\times$} & \textbf{3,01$\times$} & \textbf{4,01$\times$} \\
+\textbf{Eficiência Paralela} & \textbf{100,0\%} & \textbf{82,5\%} & \textbf{73,3\%} & \textbf{65,4\%} \\
+\bottomrule
+\end{tabular}%
+}
+\fonte{Dados extraídos de \texttt{saida-expB-w192-job19173.txt} nos nós \texttt{wz10}, \texttt{wz11}, \texttt{wz12} e \texttt{wz15}.}
+\end{table}
+
+\section{Comparativo Direto: Experiência A vs. Experiência B}
+A Tabela~\ref{tab:comparativo} consolida o comparativo entre a abordagem direta (Versão A) e a abordagem blocada com ladrilhos $w = 192$ (Versão B), destacando o ganho tanto no tempo total quanto no tempo exclusivo de computação.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparativo de Desempenho: Experiência A (Direta) vs. Experiência B (Blocada, $w = 192$).}
+\label{tab:comparativo}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccccccc}
+\toprule
+\textbf{Procs} & \textbf{Total A} & \textbf{Total B} & \textbf{Comp A} & \textbf{Comp B} & \textbf{Vazão A} & \textbf{Vazão B} & \textbf{Aceleração} & \textbf{Aceleração} & \textbf{Ganho Vazão} \\
+\textbf{(Nós)} & \textbf{(s)} & \textbf{(s)} & \textbf{(s)} & \textbf{(s)} & \textbf{(GFLOPS)} & \textbf{(GFLOPS)} & \textbf{Total (A/B)} & \textbf{Comp (A/B)} & \textbf{\% (B vs A)} \\
+\midrule
+1 & 12,8297 & 2,3829 & 12,8297 & 2,3829 & 0,3310 & 1,7822 & \textbf{5,38$\times$} & \textbf{5,38$\times$} & \textbf{+438,40\%} \\
+2 & 6,8002 & 1,4450 & 6,5511 & 1,1923 & 0,6245 & 2,9393 & \textbf{4,71$\times$} & \textbf{5,49$\times$} & \textbf{+370,66\%} \\
+3 & 4,5800 & 1,0829 & 4,2681 & 0,7904 & 0,9273 & 3,9215 & \textbf{4,23$\times$} & \textbf{5,40$\times$} & \textbf{+322,92\%} \\
+4 & 3,5545 & 0,9108 & 3,2374 & 0,5949 & 1,1948 & 4,6632 & \textbf{3,90$\times$} & \textbf{5,44$\times$} & \textbf{+290,29\%} \\
+\bottomrule
+\end{tabular}%
+}
+\fonte{Médias calculadas a partir dos Jobs SLURM 19172 e 19173.}
+\end{table}
+
+\section{Discussão Técnica dos Resultados}
+
+\begin{enumerate}
+    \item \textbf{Aceleração de $5,4\times$ na Computação pelo Reúso de Cache L2:} O impacto mais expressivo nos experimentos é a redução drástica no tempo de computação local ao substituir a Versão A pela Versão B ($w = 192$). Com 1 processo, o tempo caiu de $12,8297\text{ s}$ para $2,3829\text{ s}$ (\textbf{aceleração de $5,38\times$}, ou $+438,40\%$ de vazão). Com 2, 3 e 4 processos, a aceleração exclusiva da computação manteve-se entre \textbf{$5,40\times$ e $5,49\times$}. Isso comprova que manter os três ladrilhos de $288\text{ KiB}$ ($864\text{ KiB}$ no total) dentro da cache L2 de $6\text{ MiB}$, combinado ao acesso sequencial de passo 1 nos laços internos ($i \to k \to j$), elimina o gargalo de acesso à memória RAM que penalizava a leitura por colunas de $B$ na Versão A.
+
+    \item \textbf{Escalabilidade Linear da Fase de Computação:} Analisando isoladamente o tempo de computação ($T_{\text{comp}}$), ambas as versões apresentam escalabilidade perfeita:
+    \begin{itemize}
+        \item Na \textbf{Versão A}, $T_{\text{comp}}$ cai de $12,8297\text{ s}$ (1 nó) para $6,5511\text{ s}$ (2 nós, $1,96\times$), $4,2681\text{ s}$ (3 nós, $3,01\times$) e $3,2374\text{ s}$ (4 nós, \textbf{$3,96\times$}).
+        \item Na \textbf{Versão B}, $T_{\text{comp}}$ cai de $2,3829\text{ s}$ (1 nó) para $1,1923\text{ s}$ (2 nós, $2,00\times$), $0,7904\text{ s}$ (3 nós, $3,01\times$) e $0,5949\text{ s}$ (4 nós, \textbf{$4,01\times$}).
+    \end{itemize}
+    Como a faixa de linhas por processo ($nl = N_{la} / nprocs$) diminui proporcionalmente ao número de nós e não há dependência de dados durante a fase do kernel local, o trabalho computacional divide-se de maneira ideal.
+
+    \item \textbf{Custo Constante da Comunicação MPI na Rede Ethernet e Lei de Amdahl:} O tempo absoluto de comunicação ($T_{\text{comm}}$) permanece praticamente idêntico entre a Versão A e a Versão B, pois o volume de bytes trafegados no \texttt{MPI\_Scatter}, \texttt{MPI\_Bcast} e \texttt{MPI\_Gather} é exatamente o mesmo:
+    \begin{itemize}
+        \item $2\text{ nós}$: $\approx 0,2491\text{ s}$ (Exp A) e $\approx 0,2527\text{ s}$ (Exp B);
+        \item $3\text{ nós}$: $\approx 0,3119\text{ s}$ (Exp A) e $\approx 0,2925\text{ s}$ (Exp B);
+        \item $4\text{ nós}$: $\approx 0,3172\text{ s}$ (Exp A) e $\approx 0,3159\text{ s}$ (Exp B).
+    \end{itemize}
+    Contudo, como a Versão B tornou a computação $5,44\times$ mais rápida, o peso relativo da comunicação dentro do tempo total aumentou significativamente: em 4 nós, a comunicação de $\approx 0,316\text{ s}$ representa apenas \textbf{$8,92\%$} do tempo total na Versão A ($3,5545\text{ s}$), mas passa a representar \textbf{$34,69\%$} do tempo total na Versão B ($0,9108\text{ s}$). Pela Lei de Amdahl, essa fração de comunicação na rede Ethernet explica por que o Speedup Total em 4 nós é de $3,61\times$ na Versão A e de $2,62\times$ na Versão B, embora a Versão B seja $3,90\times$ mais rápida em termos absolutos ($4,6632\text{ GFLOPS}$ contra $1,1948\text{ GFLOPS}$).
+\end{enumerate}
+
+% -----------------------------------------------------------------------------
+\chapter{Instruções de Compilação, Execução e Arquivos Entregues}
+% -----------------------------------------------------------------------------
+
+\section{Como Compilar o Projeto}
+O projeto conta com um \texttt{Makefile} configurado para compilar o código com o wrapper \texttt{mpicc} e as flags de otimização \texttt{-O3 -Wall -Wextra -std=c99}:
+\begin{verbatim}
+make clean && make
+\end{verbatim}
+Isso gera o binário único \texttt{mmul}, que atende tanto à Versão A quanto à Versão B.
+
+\section{Como Executar o Programa}
+O executável \texttt{mmul} suporta as duas versões do algoritmo conforme os argumentos passados na linha de comando:
+\begin{itemize}
+    \item \textbf{Versão A (Direta/Simples):}
+    \begin{verbatim}
+    mpirun -np <n> ./mmul <Nla> <M> <Ncb> [-v]
+    \end{verbatim}
+    Exemplo: \texttt{mpirun -np 4 ./mmul 2304 960 960 -v}
+    \item \textbf{Versão B (Blocada com Ladrilhos):}
+    \begin{verbatim}
+    mpirun -np <n> ./mmul <Nla> <M> <Ncb> -w <blockWidth> [-v]
+    \end{verbatim}
+    Exemplo: \texttt{mpirun -np 4 ./mmul 2304 960 960 -w 192 -v}
+\end{itemize}
+Quando a flag opcional \texttt{-v} é informada, o processo 0 executa \texttt{verifica\_resultado} após a coleta da matriz $C$ e imprime na saída de erro (\texttt{stderr}) o número de elementos incorretos encontrados.
+
+\section{Como Submeter os Experimentos via SLURM}
+No nó de login do cluster da disciplina, os jobs das duas baterias experimentais são submetidos com:
+\begin{verbatim}
+sbatch roda-exp-A-slurm.sh
+sbatch roda-exp-B-slurm.sh
+\end{verbatim}
+
+\section{Estrutura dos Arquivos Entregues}
+O pacote compactado entregue contém todos os arquivos solicitados na especificação:
+
+\begin{itemize}
+    \item \textbf{Códigos-Fonte em C e Cabeçalhos:}
+    \begin{itemize}
+        \item \nolinkurl{mmul.c} e \nolinkurl{mmul.h}: implementação completa em MPI (Versão A direta e Versão B blocada com ladrilhos), geração de matrizes (\texttt{gera\_matriz}) e verificação exata (\texttt{verifica\_resultado});
+        \item \nolinkurl{chrono.c} e \nolinkurl{chrono.h}: biblioteca de cronometragem de alta precisão.
+    \end{itemize}
+
+    \item \textbf{Scripts de Compilação, Teste e SLURM:}
+    \begin{itemize}
+        \item \nolinkurl{Makefile}: regras de compilação com \texttt{mpicc -O3};
+        \item \nolinkurl{roda-exp-A-slurm.sh}: script SLURM para a Experiência A (Versão A, 8 execuções para 1 a 4 processos em 4 nós);
+        \item \nolinkurl{roda-exp-B-slurm.sh}: script SLURM para a Experiência B (Versão B com $w = 192$, 10 execuções para 1 a 4 processos em 4 nós);
+        \item \nolinkurl{roda-verifica.sh}: script de teste de corretude (\texttt{-v}) para 1 a 4 processos;
+        \item \nolinkurl{coleta-hardware.sh}: script SLURM para coleta de informações de hardware (\texttt{lscpu} e \texttt{lstopo}).
+    \end{itemize}
+
+    \item \textbf{Planilha e Dados Brutos do Cluster:}
+    \begin{itemize}
+        \item \nolinkurl{Planilha-MatMul-MPI-WZ-ExpA-ExpB.xlsx}: planilha completa com 4 abas (\texttt{Exp A - Direta}, \texttt{Exp B - Blocada w=192}, \texttt{Comparativo A vs B} e \texttt{Hardware e SLURM}), fórmulas de médias/mínimos/máximos/Speedup e 6 gráficos de Tempo $\times$ Vazão;
+        \item \nolinkurl{saida-expA-job19172.txt} e \nolinkurl{resultados-expA-direta-job19172.txt}: logs completos e tabela de vazão da Experiência A;
+        \item \nolinkurl{saida-expB-w192-job19173.txt} e \nolinkurl{resultados-expB-blocada-job19173.txt}: logs completos e tabela de vazão da Experiência B;
+        \item \nolinkurl{teste-local.txt}, \nolinkurl{hwinfo-job19171.txt}, \nolinkurl{lscpu.txt} e \nolinkurl{lstopo.txt}: registros de verificação e hardware.
+    \end{itemize}
+
+    \item \textbf{Relatório, Topologia e Especificação Original:}
+    \begin{itemize}
+        \item \nolinkurl{relatorio.pdf}: relatório técnico completo em formato PDF;
+        \item \nolinkurl{topology.pdf} e \nolinkurl{topology.svg}: diagramas da topologia gerados pelo \texttt{lstopo};
+        \item \nolinkurl{trab2-matmul-MPI-pp-2sem26.pdf} e \nolinkurl{trab2-mmul-blocada-com-ladrilhos.pdf}: documentos da especificação original do trabalho.
+    \end{itemize}
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\chapter{Conclusão}
+% -----------------------------------------------------------------------------
+
+A realização deste trabalho permitiu demonstrar na prática a combinação entre o paralelismo de memória distribuída via passagem de mensagens (MPI) e a otimização de acesso à hierarquia de memória cache local por meio da blocagem em ladrilhos (\textit{Loop Tiling}).
+
+A divisão horizontal das matrizes $A$ e $C$ com difusão de $B$ (\texttt{MPI\_Scatter}, \texttt{MPI\_Bcast} e \texttt{MPI\_Gather}) proporcionou escalabilidade linear na fase de computação ao distribuir o trabalho entre 1, 2, 3 e 4 nós físicos do cluster (\texttt{wz10}, \texttt{wz11}, \texttt{wz12} e \texttt{wz15}), alcançando Speedup de computação de $3,96\times$ na Versão A e $4,01\times$ na Versão B em 4 nós.
+
+Por sua vez, a introdução de ladrilhos quadrados de $192 \times 192$ elementos ($288\text{ KiB}$ por bloco) com permutação de laços ($i \to k \to j$) na Versão B eliminou os constantes \textit{cache misses} de leitura por coluna da matriz $B$ na cache L2 de $6\text{ MiB}$ do processador Intel Xeon E5410. Isso resultou em uma aceleração de até $5,49\times$ na computação e $5,38\times$ no tempo total, elevando a vazão média em 4 nós de $1,1948\text{ GFLOPS}$ para $4,6632\text{ GFLOPS}$ (com pico de $4,7139\text{ GFLOPS}$).
+
+\postextual
+
+% -----------------------------------------------------------------------------
+\begin{apendicesenv}
+\partapendices
+
+\chapter{Saída Completa do Comando \texttt{lscpu} nos Nós \texttt{wz}}
+\label{apendice:lscpu}
+
+Registro completo obtido nos nós do cluster (Job SLURM 19171):
+
+\begin{lstlisting}[breaklines=true, basicstyle=\ttfamily\scriptsize]
+Architecture:                    x86_64
+CPU op-mode(s):                  32-bit, 64-bit
+Byte Order:                      Little Endian
+Address sizes:                   38 bits physical, 48 bits virtual
+CPU(s):                          8
+On-line CPU(s) list:             0-7
+Thread(s) per core:              1
+Core(s) per socket:              4
+Socket(s):                       2
+NUMA node(s):                    1
+Vendor ID:                       GenuineIntel
+CPU family:                      6
+Model:                           23
+Model name:                      Intel(R) Xeon(R) CPU           E5410  @ 2.33GHz
+Stepping:                        10
+CPU MHz:                         2333.000
+CPU max MHz:                     2333.0000
+CPU min MHz:                     2000.0000
+BogoMIPS:                        4655.50
+Virtualization:                  VT-x
+L1d cache:                       256 KiB
+L1i cache:                       256 KiB
+L2 cache:                        24 MiB
+NUMA node0 CPU(s):               0-7
+Vulnerability Itlb multihit:     KVM: Mitigation: VMX disabled
+Vulnerability L1tf:              Mitigation; PTE Inversion; VMX EPT disabled
+Vulnerability Mds:               Vulnerable: Clear CPU buffers attempted, no microcode; SMT disabled
+Vulnerability Meltdown:          Mitigation; PTI
+Vulnerability Spec store bypass: Vulnerable
+Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:        Mitigation; Full generic retpoline, STIBP disabled, RSB filling
+Vulnerability Srbds:             Not affected
+Vulnerability Tsx async abort:   Not affected
+Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ht tm pbe syscall nx lm constant_tsc arch_perfmon pebs bts rep_good nopl cpuid aperfmperf pni dtes64 monitor ds_cpl vmx est tm2 ssse3 cx16 xtpr pdcm dca sse4_1 xsave lahf_lm pti tpr_shadow vnmi flexpriority vpid dtherm
+\end{lstlisting}
+
+\end{apendicesenv}
+
+\end{document}

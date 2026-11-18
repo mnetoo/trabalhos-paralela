@@ -1,0 +1,51 @@
+RELATORIO TECNICO - TRABALHO 2: MULTIPLICACAO PARALELA DE MATRIZES COM MPI E LADRILHOS (TILING)
+Disciplina: Programacao Paralela (CI1316) - DInF / UFPR
+Professor: Prof. Dr. Wagner M. Nunan Zola
+Autores:
+  - Henrique Villela Silva (GRR20242612)
+  - Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
+
+================================================================================
+1. IMPLEMENTACAO E ALGORITMOS PARALELOS EM MPI
+================================================================================
+- Dimensoes: A[2304 x 960], B[960 x 960], C[2304 x 960] (double, 8 bytes).
+- Total de operacoes por multiplicacao: 2 * 2304 * 960 * 960 = 4.246.732.800 FLOPs (4,246733 GFLOP).
+- Particionamento MPI:
+  * MPI_Scatter: divide a matriz A em faixas horizontais de nl = Nla / nprocs linhas.
+  * MPI_Bcast: difunde a matriz B inteira (960 x 960) para todos os processos.
+  * MPI_Gather: recolhe as faixas calculadas de C de volta no processo 0.
+- Versao A (Direta/Simples): triplo laco tradicional (i -> j -> k), com leitura por coluna de B (passo 960 doubles = 7680 bytes).
+- Versao B (Blocada com Ladrilhos -w 192): divide as matrizes em blocos de 192 x 192 (288 KiB por bloco) com lacos externos (ii -> kk -> jj) e lacos internos permutados (i -> k -> j) com passo 1.
+- Verificacao (-v): gera_matriz com inteiros em [-4, 4] via srand(1) e verifica_resultado com comparacao exata (!=). Zero erros em todos os 2.211.840 elementos para 1, 2, 3 e 4 processos.
+
+================================================================================
+2. ARQUITETURA DO CLUSTER E DIMENSIONAMENTO DO LADRILHO (w = 192)
+================================================================================
+- Nos utilizados (alocacao exclusiva, 1 processo MPI por no): wz10, wz11, wz12 e wz15.
+- CPU por no: 2x Intel Xeon E5410 @ 2.33GHz (4 cores/socket, 8 cores fisicos, sem Hyper-Threading).
+- Cache por no: L1d 32 KiB/core, L1i 32 KiB/core, L2 de 6 MiB (6.144 KiB) compartilhada por par de cores (24 MiB total no no).
+- Dimensionamento w = 192:
+  * Divide exatamente 2304, 1152, 768, 576 (faixas para 1, 2, 3, 4 procs) e 960 (M e Ncb).
+  * 1 ladrilho (192 x 192 x 8 B) = 288 KiB; 3 ladrilhos ativos (A, B, C) = 864 KiB << 6.144 KiB da cache L2.
+
+================================================================================
+3. RESULTADOS EXPERIMENTAIS (RESUMO DAS MEDIAS)
+================================================================================
+
+3.1 Experiencia A - Versao A Direta (8 execucoes, Job 19172):
+- 1 Proc (wz10)          : Total = 12,8297 s | Comp = 12,8297 s | Comm = 0,0000 s (0,00%) | Vazao = 0,3310 GFLOPS | Speedup Total = 1,00x | Speedup Comp = 1,00x
+- 2 Procs (wz10,11)      : Total =  6,8002 s | Comp =  6,5511 s | Comm = 0,2491 s (3,66%) | Vazao = 0,6245 GFLOPS | Speedup Total = 1,89x | Speedup Comp = 1,96x
+- 3 Procs (wz10-12)      : Total =  4,5800 s | Comp =  4,2681 s | Comm = 0,3119 s (6,81%) | Vazao = 0,9273 GFLOPS | Speedup Total = 2,80x | Speedup Comp = 3,01x
+- 4 Procs (wz10-12,15)   : Total =  3,5545 s | Comp =  3,2374 s | Comm = 0,3172 s (8,92%) | Vazao = 1,1948 GFLOPS | Speedup Total = 3,61x | Speedup Comp = 3,96x
+
+3.2 Experiencia B - Versao B Blocada w=192 (10 execucoes, Job 19173):
+- 1 Proc (wz10)          : Total =  2,3829 s | Comp =  2,3829 s | Comm = 0,0000 s (0,00%)  | Vazao = 1,7822 GFLOPS | Speedup Total = 1,00x | Speedup Comp = 1,00x
+- 2 Procs (wz10,11)      : Total =  1,4450 s | Comp =  1,1923 s | Comm = 0,2527 s (17,49%) | Vazao = 2,9393 GFLOPS | Speedup Total = 1,65x | Speedup Comp = 2,00x
+- 3 Procs (wz10-12)      : Total =  1,0829 s | Comp =  0,7904 s | Comm = 0,2925 s (27,01%) | Vazao = 3,9215 GFLOPS | Speedup Total = 2,20x | Speedup Comp = 3,01x
+- 4 Procs (wz10-12,15)   : Total =  0,9108 s | Comp =  0,5949 s | Comm = 0,3159 s (34,69%) | Vazao = 4,6632 GFLOPS | Speedup Total = 2,62x | Speedup Comp = 4,01x
+
+3.3 Comparativo A vs B (Ganho da Blocagem por Ladrilhos):
+- 1 Proc : Aceleracao Total = 5,38x | Aceleracao Comp = 5,38x | Ganho de Vazao = +438,40%
+- 2 Procs: Aceleracao Total = 4,71x | Aceleracao Comp = 5,49x | Ganho de Vazao = +370,66%
+- 3 Procs: Aceleracao Total = 4,23x | Aceleracao Comp = 5,40x | Ganho de Vazao = +322,92%
+- 4 Procs: Aceleracao Total = 3,90x | Aceleracao Comp = 5,44x | Ganho de Vazao = +290,29%

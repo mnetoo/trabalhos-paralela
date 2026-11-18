@@ -1,0 +1,241 @@
+USAGE: sbatch roda-exp-A-slurm.sh [Nla] [M] [Ncb] [MAX_EXECS]
+/var/spool/slurmd/job19172/slurm_script rodando no host  wz10
+SLURM_JOB_NAME:  t2-expA
+SLURM_NODELIST:  wz[10-12,15]
+SLURM_JOB_NODELIST:  wz[10-12,15]
+SLURM_JOB_CPUS_PER_NODE:  8(x4)
+nt  10
+MAX_EXECS  8
+------- rodando a Experiencia A (Versao A - Direta/Simples): A[2304x960] * B[960x960] -------
+(tempo acumulado: 0 segundos)
+================================================================
+Executando 8 vezes Versao A (2304x960 * 960x960) com 1 processos MPI (hosts: wz10): (tempo acumulado: 0 segundos)
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.833476 s
+computation_time_in_seconds: 12.833471 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.330911 GFLOPS
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.768507 s
+computation_time_in_seconds: 12.768504 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.332594 GFLOPS
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.828723 s
+computation_time_in_seconds: 12.828719 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.331033 GFLOPS
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.912458 s
+computation_time_in_seconds: 12.912454 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.328886 GFLOPS
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.879961 s
+computation_time_in_seconds: 12.879957 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.329716 GFLOPS
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.856598 s
+computation_time_in_seconds: 12.856593 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.330315 GFLOPS
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.800958 s
+computation_time_in_seconds: 12.800954 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.331751 GFLOPS
+Rank 0/1 rodando no host wz10
+total_time_in_seconds: 12.757104 s
+computation_time_in_seconds: 12.757099 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 0.332892 GFLOPS
+nao executado, j= 9
+nao executado, j= 10
+================================================================
+Executando 8 vezes Versao A (2304x960 * 960x960) com 2 processos MPI (hosts: wz10,wz11): (tempo acumulado: 107 segundos)
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.812793 s
+computation_time_in_seconds: 6.563254 s
+communication_time_in_seconds: 0.249539 s
+Throughput: 0.623347 GFLOPS
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.844241 s
+computation_time_in_seconds: 6.593836 s
+communication_time_in_seconds: 0.250405 s
+Throughput: 0.620483 GFLOPS
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.774601 s
+computation_time_in_seconds: 6.525977 s
+communication_time_in_seconds: 0.248624 s
+Throughput: 0.626861 GFLOPS
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.789917 s
+computation_time_in_seconds: 6.541387 s
+communication_time_in_seconds: 0.248530 s
+Throughput: 0.625447 GFLOPS
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.774644 s
+computation_time_in_seconds: 6.525614 s
+communication_time_in_seconds: 0.249030 s
+Throughput: 0.626857 GFLOPS
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.814857 s
+computation_time_in_seconds: 6.566106 s
+communication_time_in_seconds: 0.248752 s
+Throughput: 0.623158 GFLOPS
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.778302 s
+computation_time_in_seconds: 6.529840 s
+communication_time_in_seconds: 0.248462 s
+Throughput: 0.626519 GFLOPS
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+total_time_in_seconds: 6.811869 s
+computation_time_in_seconds: 6.562666 s
+communication_time_in_seconds: 0.249203 s
+Throughput: 0.623431 GFLOPS
+nao executado, j= 9
+nao executado, j= 10
+================================================================
+Executando 8 vezes Versao A (2304x960 * 960x960) com 3 processos MPI (hosts: wz10,wz11,wz12): (tempo acumulado: 168 segundos)
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+total_time_in_seconds: 4.591327 s
+computation_time_in_seconds: 4.276812 s
+communication_time_in_seconds: 0.314515 s
+Throughput: 0.924947 GFLOPS
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+total_time_in_seconds: 4.585817 s
+computation_time_in_seconds: 4.269725 s
+communication_time_in_seconds: 0.316092 s
+Throughput: 0.926058 GFLOPS
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+total_time_in_seconds: 4.565929 s
+computation_time_in_seconds: 4.266327 s
+communication_time_in_seconds: 0.299603 s
+Throughput: 0.930092 GFLOPS
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+total_time_in_seconds: 4.576797 s
+computation_time_in_seconds: 4.253357 s
+communication_time_in_seconds: 0.323440 s
+Throughput: 0.927883 GFLOPS
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+total_time_in_seconds: 4.597908 s
+computation_time_in_seconds: 4.306663 s
+communication_time_in_seconds: 0.291244 s
+Throughput: 0.923623 GFLOPS
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+total_time_in_seconds: 4.596365 s
+computation_time_in_seconds: 4.251088 s
+communication_time_in_seconds: 0.345277 s
+Throughput: 0.923933 GFLOPS
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+total_time_in_seconds: 4.572089 s
+computation_time_in_seconds: 4.268898 s
+communication_time_in_seconds: 0.303191 s
+Throughput: 0.928839 GFLOPS
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+total_time_in_seconds: 4.553516 s
+computation_time_in_seconds: 4.252063 s
+communication_time_in_seconds: 0.301453 s
+Throughput: 0.932627 GFLOPS
+nao executado, j= 9
+nao executado, j= 10
+================================================================
+Executando 8 vezes Versao A (2304x960 * 960x960) com 4 processos MPI (hosts: wz10,wz11,wz12,wz15): (tempo acumulado: 212 segundos)
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 2/4 rodando no host wz12
+Rank 1/4 rodando no host wz11
+total_time_in_seconds: 3.540528 s
+computation_time_in_seconds: 3.226157 s
+communication_time_in_seconds: 0.314371 s
+Throughput: 1.199463 GFLOPS
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+total_time_in_seconds: 3.543948 s
+computation_time_in_seconds: 3.226815 s
+communication_time_in_seconds: 0.317134 s
+Throughput: 1.198306 GFLOPS
+Rank 0/4 rodando no host wz10
+Rank 1/4 rodando no host wz11
+Rank 3/4 rodando no host wz15
+Rank 2/4 rodando no host wz12
+total_time_in_seconds: 3.544369 s
+computation_time_in_seconds: 3.220484 s
+communication_time_in_seconds: 0.323886 s
+Throughput: 1.198163 GFLOPS
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+total_time_in_seconds: 3.541432 s
+computation_time_in_seconds: 3.224647 s
+communication_time_in_seconds: 0.316785 s
+Throughput: 1.199157 GFLOPS
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+total_time_in_seconds: 3.555143 s
+computation_time_in_seconds: 3.238434 s
+communication_time_in_seconds: 0.316709 s
+Throughput: 1.194532 GFLOPS
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 2/4 rodando no host wz12
+Rank 1/4 rodando no host wz11
+total_time_in_seconds: 3.529768 s
+computation_time_in_seconds: 3.214281 s
+communication_time_in_seconds: 0.315487 s
+Throughput: 1.203120 GFLOPS
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+total_time_in_seconds: 3.620627 s
+computation_time_in_seconds: 3.303114 s
+communication_time_in_seconds: 0.317513 s
+Throughput: 1.172928 GFLOPS
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+total_time_in_seconds: 3.560498 s
+computation_time_in_seconds: 3.245017 s
+communication_time_in_seconds: 0.315481 s
+Throughput: 1.192736 GFLOPS
+nao executado, j= 9
+nao executado, j= 10
+O tempo total dessa shell foi de 247 segundos
+SLURM_JOB_NAME:  t2-expA
+SLURM_NODELIST:  wz[10-12,15]
+SLURM_JOB_NODELIST:  wz[10-12,15]
+SLURM_JOB_CPUS_PER_NODE:  8(x4)
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+             19172     debug  t2-expA   nobody  R       4:07      4 wz[10-12,15]
