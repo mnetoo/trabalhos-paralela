@@ -1,5 +1,5 @@
 CC = mpicc
-CFLAGS = -Wall -Wextra -O3 -std=gnu11
+CFLAGS = -Wall -Wextra -O3 -march=native -funroll-loops -std=gnu11
 LDFLAGS = -lm
 
 TARGET = mmul

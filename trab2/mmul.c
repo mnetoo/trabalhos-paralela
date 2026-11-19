@@ -8,7 +8,10 @@
  * Descricao:
  *   Multiplicacao paralela de matrizes C [Nla x Ncb] = A [Nla x M] * B [M x Ncb]
  *   em precisao dupla (double) utilizando MPI:
- *     - Versao A (direta/simples): sem otimizacao de cache (lacos classicos i -> j -> k).
+ *     - Versao A (direta/simples): sem otimizacao de cache (lacos classicos i -> j -> k),
+ *       otimizada com desdobramento de laco (loop unrolling x8 aproveitando M multiplo de 8),
+ *       acumuladores independentes para paralelismo no nivel de instrucao (ILP/MLP) e
+ *       alinhamento de memoria em 64 bytes (cache line).
  *     - Versao B (blocada/tiling): otimizada para cache com ladrilhos w x w
  *       (lacos externos ii -> kk -> jj e internos i -> k -> j em ordem row-major).
  */
@@ -24,6 +27,27 @@
 
 #include "mmul.h"
 #include "chrono.c"
+
+/*
+ * Alocacao alinhada em 64 bytes (tamanho da linha de cache L1/L2).
+ * Como M e Ncb sao multiplos de 8 (8 * 8 bytes = 64 bytes), alinhar a base
+ * em 64 bytes garante que TODA linha das matrizes A, B e C comece exatamente
+ * no inicio de uma linha de cache e alinhada para instrucoes vetoriais SSE2/AVX.
+ */
+static double *alloc_matrix_aligned(size_t n_elems)
+{
+    void *ptr = NULL;
+    size_t bytes = n_elems * sizeof(double);
+#if defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
+    if (posix_memalign(&ptr, 64, bytes) != 0) {
+        return NULL;
+    }
+    return (double *)ptr;
+#else
+    ptr = malloc(bytes);
+    return (double *)ptr;
+#endif
+}
 
 /*
  * gera_matriz -- preenche uma matriz com inteiros pequenos em [-4, 4]
@@ -122,24 +146,55 @@ size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
 
 /*
  * Kernel da Versao A (Direta / Simples):
- *   Multiplicacao classica em 3 lacos (i -> j -> k), sem otimizacao de cache.
+ *   Multiplicacao nos 3 lacos classicos (i -> j -> k), sem blocagem de cache.
  *   Cada processo multiplica sua faixa horizontal A_local [nl x M]
- *   pela matriz B inteira [M x Ncb], produzindo sua faixa C_local [nl x Ncb].
+ *   pelas colunas da matriz B [M x Ncb], produzindo sua faixa C_local [nl x Ncb].
+ *
+ *   Otimizacoes aplicadas dentro das regras da Versao A:
+ *     1. Aproveita a restricao do enunciado (M multiplo de 8) para desdobrar
+ *        o laco interno k em 8 iteracoes (loop unrolling x8).
+ *     2. Usa 4 acumuladores escalares independentes (sum0..sum3) para quebrar
+ *        a cadeia de dependencia de latencia da instrucao addsd (3 ciclos no Xeon)
+ *        e permitir multiplos acessos simultaneos ao L2 (MLP).
+ *     3. Usa aritmetica de ponteiros pre-calculada (stride, stride2, stride3, stride4)
+ *        em vez de recalcular k * Ncb + j a cada iteracao.
  */
 void mmul_kernel_versao_A(int nl, int M, int Ncb,
                           const double * restrict A_local,
                           const double * restrict B,
                           double * restrict C_local)
 {
+    const size_t stride  = (size_t)Ncb;
+    const size_t stride2 = stride * 2;
+    const size_t stride3 = stride * 3;
+    const size_t stride4 = stride * 4;
+
     for (int i = 0; i < nl; i++) {
-        const double * restrict A_row = &A_local[(size_t)i * M];
-        double * restrict C_row = &C_local[(size_t)i * Ncb];
+        const double * restrict A_row = &A_local[(size_t)i * (size_t)M];
+        double * restrict C_row = &C_local[(size_t)i * stride];
+
         for (int j = 0; j < Ncb; j++) {
-            double sum = 0.0;
-            for (int k = 0; k < M; k++) {
-                sum += A_row[k] * B[(size_t)k * Ncb + j];
+            double sum0 = 0.0;
+            double sum1 = 0.0;
+            double sum2 = 0.0;
+            double sum3 = 0.0;
+            const double * restrict b_ptr = &B[j];
+
+            for (int k = 0; k < M; k += 8) {
+                sum0 += A_row[k + 0] * b_ptr[0];
+                sum1 += A_row[k + 1] * b_ptr[stride];
+                sum2 += A_row[k + 2] * b_ptr[stride2];
+                sum3 += A_row[k + 3] * b_ptr[stride3];
+                b_ptr += stride4;
+
+                sum0 += A_row[k + 4] * b_ptr[0];
+                sum1 += A_row[k + 5] * b_ptr[stride];
+                sum2 += A_row[k + 6] * b_ptr[stride2];
+                sum3 += A_row[k + 7] * b_ptr[stride3];
+                b_ptr += stride4;
             }
-            C_row[j] = sum;
+
+            C_row[j] = (sum0 + sum1) + (sum2 + sum3);
         }
     }
 }
@@ -298,16 +353,16 @@ int main(int argc, char *argv[])
 
     int nl = Nla / nprocs;
 
-    /* Alocacao das matrizes (vetores 1D contiguos em armazenamento row-major) */
+    /* Alocacao das matrizes alinhadas em 64 bytes (vetores 1D contiguos row-major) */
     double *A = NULL;
-    double *B = (double *)malloc((size_t)M * (size_t)Ncb * sizeof(double));
+    double *B = alloc_matrix_aligned((size_t)M * (size_t)Ncb);
     double *C = NULL;
     double *local_A = NULL;
     double *local_C = NULL;
 
     if (rank == 0) {
-        A = (double *)malloc((size_t)Nla * (size_t)M * sizeof(double));
-        C = (double *)malloc((size_t)Nla * (size_t)Ncb * sizeof(double));
+        A = alloc_matrix_aligned((size_t)Nla * (size_t)M);
+        C = alloc_matrix_aligned((size_t)Nla * (size_t)Ncb);
         if (A == NULL || B == NULL || C == NULL) {
             fprintf(stderr, "erro: falha na alocacao de memoria no rank 0\n");
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -322,8 +377,8 @@ int main(int argc, char *argv[])
     }
 
     if (nprocs > 1) {
-        local_A = (double *)malloc((size_t)nl * (size_t)M * sizeof(double));
-        local_C = (double *)malloc((size_t)nl * (size_t)Ncb * sizeof(double));
+        local_A = alloc_matrix_aligned((size_t)nl * (size_t)M);
+        local_C = alloc_matrix_aligned((size_t)nl * (size_t)Ncb);
         if (local_A == NULL || local_C == NULL) {
             fprintf(stderr, "erro: falha na alocacao dos buffers locais no rank %d\n", rank);
             MPI_Abort(MPI_COMM_WORLD, 1);

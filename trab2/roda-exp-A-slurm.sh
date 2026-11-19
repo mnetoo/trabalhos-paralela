@@ -5,12 +5,12 @@
 #SBATCH --job-name=t2-expA
 #SBATCH --output=resultados-expA-direta-job%j.txt
 
-# Configurado para 8 execucoes por cenario (cabe com folga no teto de 5 minutos da fila)
+# Configurado para 10 execucoes por cenario (com o kernel A otimizado, cabe em 5 min)
 
 NLA=${1:-2304}
 M=${2:-960}
 NCB=${3:-960}
-MAX_EXECS=${4:-8}
+MAX_EXECS=${4:-10}
 
 echo "USAGE: sbatch roda-exp-A-slurm.sh [Nla] [M] [Ncb] [MAX_EXECS]"
 echo "$0 rodando no host " `hostname`
