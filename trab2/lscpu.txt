@@ -11,16 +11,18 @@ NUMA node(s):                    1
 Vendor ID:                       GenuineIntel
 CPU family:                      6
 Model:                           23
-Model name:                      Intel(R) Xeon(R) CPU           E5462  @ 2.80GHz
-Stepping:                        6
-CPU MHz:                         2793.154
-BogoMIPS:                        5586.30
+Model name:                      Intel(R) Xeon(R) CPU           E5410  @ 2.33GHz
+Stepping:                        10
+CPU MHz:                         2333.000
+CPU max MHz:                     2333.0000
+CPU min MHz:                     2000.0000
+BogoMIPS:                        4655.52
 Virtualization:                  VT-x
 L1d cache:                       256 KiB
 L1i cache:                       256 KiB
 L2 cache:                        24 MiB
 NUMA node0 CPU(s):               0-7
-Vulnerability Itlb multihit:     KVM: Mitigation: Split huge pages
+Vulnerability Itlb multihit:     KVM: Mitigation: VMX disabled
 Vulnerability L1tf:              Mitigation; PTE Inversion; VMX EPT disabled
 Vulnerability Mds:               Vulnerable: Clear CPU buffers attempted, no microcode; SMT disabled
 Vulnerability Meltdown:          Mitigation; PTI
@@ -29,4 +31,4 @@ Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user
 Vulnerability Spectre v2:        Mitigation; Full generic retpoline, STIBP disabled, RSB filling
 Vulnerability Srbds:             Not affected
 Vulnerability Tsx async abort:   Not affected
-Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ht tm pbe syscall nx lm constant_tsc arch_perfmon pebs bts rep_good nopl cpuid aperfmperf pni dtes64 monitor ds_cpl vmx est tm2 ssse3 cx16 xtpr pdcm dca sse4_1 lahf_lm pti tpr_shadow vnmi flexpriority vpid dtherm
+Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ht tm pbe syscall nx lm constant_tsc arch_perfmon pebs bts rep_good nopl cpuid aperfmperf pni dtes64 monitor ds_cpl vmx est tm2 ssse3 cx16 xtpr pdcm dca sse4_1 xsave lahf_lm pti tpr_shadow vnmi flexpriority vpid dtherm

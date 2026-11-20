@@ -5,7 +5,10 @@
 #SBATCH --job-name=t2-expA
 #SBATCH --output=resultados-expA-direta-job%j.txt
 
-# Configurado para 10 execucoes por cenario (com o kernel A otimizado, cabe em 5 min)
+# CI1316 - Programacao Paralela - Trabalho 2
+# Autores:
+#   Henrique Villela Silva (GRR20242612)
+#   Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
 
 NLA=${1:-2304}
 M=${2:-960}
@@ -27,7 +30,6 @@ NTIMES=10
 echo "nt " $NTIMES | tee -a $SAIDA
 echo "MAX_EXECS " $MAX_EXECS | tee -a $SAIDA
 
-# Extrai a lista de nodos alocados pelo Slurm
 HOSTS_ARRAY=($(scontrol show hostnames $SLURM_JOB_NODELIST))
 
 echo "------- rodando a Experiencia A (Versao A - Direta/Simples): A[${NLA}x${M}] * B[${M}x${NCB}] -------" | tee -a $SAIDA
@@ -35,7 +37,6 @@ echo "(tempo acumulado: $SECONDS segundos)" | tee -a $SAIDA
 
 for np in 1 2 3 4
 do
-    # Monta a string de hosts contendo exatamente os $np primeiros nodos
     HOST_LIST=$(IFS=, ; echo "${HOSTS_ARRAY[*]:0:$np}")
 
     echo "================================================================" | tee -a $SAIDA

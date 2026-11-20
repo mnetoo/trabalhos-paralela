@@ -1,0 +1,678 @@
+/var/spool/slurmd/job19392/slurm_script rodando no host  wz10
+SLURM_JOB_NAME:  t2-expB
+SLURM_NODELIST:  wz[10-12,15]
+SLURM_JOB_NODELIST:  wz[10-12,15]
+SLURM_JOB_CPUS_PER_NODE:  8(x4)
+nt  10
+MAX_EXECS  10
+------- rodando a Experiencia B (Versao B - Blocada w=192): A[2304x960] * B[960x960] -------
+(tempo acumulado: 0 segundos)
+================================================================
+Executando 10 vezes Versao B (2304x960 * 960x960, -w 192) com 1 processos MPI (hosts: wz10): (tempo acumulado: 0 segundos)
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1945088618 ns for 1 ops 
+        ==> each op takes 1945088618 ns
+
+mmul_computacao deltaT(ns): 1945084847 ns for 1 ops 
+        ==> each op takes 1945084847 ns
+total_time_in_seconds: 1.945089 s
+computation_time_in_seconds: 1.945085 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.183311 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1950280339 ns for 1 ops 
+        ==> each op takes 1950280339 ns
+
+mmul_computacao deltaT(ns): 1950276288 ns for 1 ops 
+        ==> each op takes 1950276288 ns
+total_time_in_seconds: 1.950280 s
+computation_time_in_seconds: 1.950276 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.177499 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1948423679 ns for 1 ops 
+        ==> each op takes 1948423679 ns
+
+mmul_computacao deltaT(ns): 1948418790 ns for 1 ops 
+        ==> each op takes 1948418790 ns
+total_time_in_seconds: 1.948424 s
+computation_time_in_seconds: 1.948419 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.179574 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1948831272 ns for 1 ops 
+        ==> each op takes 1948831272 ns
+
+mmul_computacao deltaT(ns): 1948827571 ns for 1 ops 
+        ==> each op takes 1948827571 ns
+total_time_in_seconds: 1.948831 s
+computation_time_in_seconds: 1.948828 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.179118 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1946359938 ns for 1 ops 
+        ==> each op takes 1946359938 ns
+
+mmul_computacao deltaT(ns): 1946355469 ns for 1 ops 
+        ==> each op takes 1946355469 ns
+total_time_in_seconds: 1.946360 s
+computation_time_in_seconds: 1.946355 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.181885 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1950200301 ns for 1 ops 
+        ==> each op takes 1950200301 ns
+
+mmul_computacao deltaT(ns): 1950195552 ns for 1 ops 
+        ==> each op takes 1950195552 ns
+total_time_in_seconds: 1.950200 s
+computation_time_in_seconds: 1.950196 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.177588 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1948716384 ns for 1 ops 
+        ==> each op takes 1948716384 ns
+
+mmul_computacao deltaT(ns): 1948712542 ns for 1 ops 
+        ==> each op takes 1948712542 ns
+total_time_in_seconds: 1.948716 s
+computation_time_in_seconds: 1.948713 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.179246 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1950729000 ns for 1 ops 
+        ==> each op takes 1950729000 ns
+
+mmul_computacao deltaT(ns): 1950724460 ns for 1 ops 
+        ==> each op takes 1950724460 ns
+total_time_in_seconds: 1.950729 s
+computation_time_in_seconds: 1.950724 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.176998 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1944910034 ns for 1 ops 
+        ==> each op takes 1944910034 ns
+
+mmul_computacao deltaT(ns): 1944905424 ns for 1 ops 
+        ==> each op takes 1944905424 ns
+total_time_in_seconds: 1.944910 s
+computation_time_in_seconds: 1.944905 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.183511 GFLOPS
+-----------------------
+Rank 0/1 rodando no host wz10
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 1 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1952832270 ns for 1 ops 
+        ==> each op takes 1952832270 ns
+
+mmul_computacao deltaT(ns): 1952828010 ns for 1 ops 
+        ==> each op takes 1952828010 ns
+total_time_in_seconds: 1.952832 s
+computation_time_in_seconds: 1.952828 s
+communication_time_in_seconds: 0.000000 s
+Throughput: 2.174653 GFLOPS
+================================================================
+Executando 10 vezes Versao B (2304x960 * 960x960, -w 192) com 2 processos MPI (hosts: wz10,wz11): (tempo acumulado: 26 segundos)
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1223900330 ns for 1 ops 
+        ==> each op takes 1223900330 ns
+
+mmul_computacao deltaT(ns): 973938795 ns for 1 ops 
+        ==> each op takes 973938795 ns
+total_time_in_seconds: 1.223900 s
+computation_time_in_seconds: 0.973939 s
+communication_time_in_seconds: 0.249962 s
+Throughput: 3.469835 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1221914183 ns for 1 ops 
+        ==> each op takes 1221914183 ns
+
+mmul_computacao deltaT(ns): 972554471 ns for 1 ops 
+        ==> each op takes 972554471 ns
+total_time_in_seconds: 1.221914 s
+computation_time_in_seconds: 0.972554 s
+communication_time_in_seconds: 0.249360 s
+Throughput: 3.475475 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1221810259 ns for 1 ops 
+        ==> each op takes 1221810259 ns
+
+mmul_computacao deltaT(ns): 972687867 ns for 1 ops 
+        ==> each op takes 972687867 ns
+total_time_in_seconds: 1.221810 s
+computation_time_in_seconds: 0.972688 s
+communication_time_in_seconds: 0.249122 s
+Throughput: 3.475771 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1224526317 ns for 1 ops 
+        ==> each op takes 1224526317 ns
+
+mmul_computacao deltaT(ns): 974086579 ns for 1 ops 
+        ==> each op takes 974086579 ns
+total_time_in_seconds: 1.224526 s
+computation_time_in_seconds: 0.974087 s
+communication_time_in_seconds: 0.250440 s
+Throughput: 3.468062 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1224532463 ns for 1 ops 
+        ==> each op takes 1224532463 ns
+
+mmul_computacao deltaT(ns): 974004027 ns for 1 ops 
+        ==> each op takes 974004027 ns
+total_time_in_seconds: 1.224532 s
+computation_time_in_seconds: 0.974004 s
+communication_time_in_seconds: 0.250528 s
+Throughput: 3.468044 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1222773231 ns for 1 ops 
+        ==> each op takes 1222773231 ns
+
+mmul_computacao deltaT(ns): 973111735 ns for 1 ops 
+        ==> each op takes 973111735 ns
+total_time_in_seconds: 1.222773 s
+computation_time_in_seconds: 0.973112 s
+communication_time_in_seconds: 0.249661 s
+Throughput: 3.473034 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1221212418 ns for 1 ops 
+        ==> each op takes 1221212418 ns
+
+mmul_computacao deltaT(ns): 974679601 ns for 1 ops 
+        ==> each op takes 974679601 ns
+total_time_in_seconds: 1.221212 s
+computation_time_in_seconds: 0.974680 s
+communication_time_in_seconds: 0.246533 s
+Throughput: 3.477473 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1221170443 ns for 1 ops 
+        ==> each op takes 1221170443 ns
+
+mmul_computacao deltaT(ns): 972539176 ns for 1 ops 
+        ==> each op takes 972539176 ns
+total_time_in_seconds: 1.221170 s
+computation_time_in_seconds: 0.972539 s
+communication_time_in_seconds: 0.248631 s
+Throughput: 3.477592 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1226451632 ns for 1 ops 
+        ==> each op takes 1226451632 ns
+
+mmul_computacao deltaT(ns): 979691482 ns for 1 ops 
+        ==> each op takes 979691482 ns
+total_time_in_seconds: 1.226452 s
+computation_time_in_seconds: 0.979691 s
+communication_time_in_seconds: 0.246760 s
+Throughput: 3.462617 GFLOPS
+-----------------------
+Rank 0/2 rodando no host wz10
+Rank 1/2 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 2 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 1225454717 ns for 1 ops 
+        ==> each op takes 1225454717 ns
+
+mmul_computacao deltaT(ns): 973725779 ns for 1 ops 
+        ==> each op takes 973725779 ns
+total_time_in_seconds: 1.225455 s
+computation_time_in_seconds: 0.973726 s
+communication_time_in_seconds: 0.251729 s
+Throughput: 3.465434 GFLOPS
+================================================================
+Executando 10 vezes Versao B (2304x960 * 960x960, -w 192) com 3 processos MPI (hosts: wz10,wz11,wz12): (tempo acumulado: 47 segundos)
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 942155843 ns for 1 ops 
+        ==> each op takes 942155843 ns
+
+mmul_computacao deltaT(ns): 648686401 ns for 1 ops 
+        ==> each op takes 648686401 ns
+total_time_in_seconds: 0.942156 s
+computation_time_in_seconds: 0.648686 s
+communication_time_in_seconds: 0.293469 s
+Throughput: 4.507463 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 942117291 ns for 1 ops 
+        ==> each op takes 942117291 ns
+
+mmul_computacao deltaT(ns): 648049658 ns for 1 ops 
+        ==> each op takes 648049658 ns
+total_time_in_seconds: 0.942117 s
+computation_time_in_seconds: 0.648050 s
+communication_time_in_seconds: 0.294068 s
+Throughput: 4.507648 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 937091582 ns for 1 ops 
+        ==> each op takes 937091582 ns
+
+mmul_computacao deltaT(ns): 649166629 ns for 1 ops 
+        ==> each op takes 649166629 ns
+total_time_in_seconds: 0.937092 s
+computation_time_in_seconds: 0.649167 s
+communication_time_in_seconds: 0.287925 s
+Throughput: 4.531823 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 945001246 ns for 1 ops 
+        ==> each op takes 945001246 ns
+
+mmul_computacao deltaT(ns): 648176559 ns for 1 ops 
+        ==> each op takes 648176559 ns
+total_time_in_seconds: 0.945001 s
+computation_time_in_seconds: 0.648177 s
+communication_time_in_seconds: 0.296825 s
+Throughput: 4.493891 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 972659582 ns for 1 ops 
+        ==> each op takes 972659582 ns
+
+mmul_computacao deltaT(ns): 649922242 ns for 1 ops 
+        ==> each op takes 649922242 ns
+total_time_in_seconds: 0.972660 s
+computation_time_in_seconds: 0.649922 s
+communication_time_in_seconds: 0.322737 s
+Throughput: 4.366104 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 953778899 ns for 1 ops 
+        ==> each op takes 953778899 ns
+
+mmul_computacao deltaT(ns): 648642121 ns for 1 ops 
+        ==> each op takes 648642121 ns
+total_time_in_seconds: 0.953779 s
+computation_time_in_seconds: 0.648642 s
+communication_time_in_seconds: 0.305137 s
+Throughput: 4.452534 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 936326749 ns for 1 ops 
+        ==> each op takes 936326749 ns
+
+mmul_computacao deltaT(ns): 647829029 ns for 1 ops 
+        ==> each op takes 647829029 ns
+total_time_in_seconds: 0.936327 s
+computation_time_in_seconds: 0.647829 s
+communication_time_in_seconds: 0.288498 s
+Throughput: 4.535524 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 936280793 ns for 1 ops 
+        ==> each op takes 936280793 ns
+
+mmul_computacao deltaT(ns): 648565785 ns for 1 ops 
+        ==> each op takes 648565785 ns
+total_time_in_seconds: 0.936281 s
+computation_time_in_seconds: 0.648566 s
+communication_time_in_seconds: 0.287715 s
+Throughput: 4.535747 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 2/3 rodando no host wz12
+Rank 1/3 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 937176369 ns for 1 ops 
+        ==> each op takes 937176369 ns
+
+mmul_computacao deltaT(ns): 648670198 ns for 1 ops 
+        ==> each op takes 648670198 ns
+total_time_in_seconds: 0.937176 s
+computation_time_in_seconds: 0.648670 s
+communication_time_in_seconds: 0.288506 s
+Throughput: 4.531413 GFLOPS
+-----------------------
+Rank 0/3 rodando no host wz10
+Rank 1/3 rodando no host wz11
+Rank 2/3 rodando no host wz12
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 3 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 946002910 ns for 1 ops 
+        ==> each op takes 946002910 ns
+
+mmul_computacao deltaT(ns): 650891989 ns for 1 ops 
+        ==> each op takes 650891989 ns
+total_time_in_seconds: 0.946003 s
+computation_time_in_seconds: 0.650892 s
+communication_time_in_seconds: 0.295111 s
+Throughput: 4.489133 GFLOPS
+================================================================
+Executando 10 vezes Versao B (2304x960 * 960x960, -w 192) com 4 processos MPI (hosts: wz10,wz11,wz12,wz15): (tempo acumulado: 64 segundos)
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 2/4 rodando no host wz12
+Rank 1/4 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 807175898 ns for 1 ops 
+        ==> each op takes 807175898 ns
+
+mmul_computacao deltaT(ns): 486387340 ns for 1 ops 
+        ==> each op takes 486387340 ns
+total_time_in_seconds: 0.807176 s
+computation_time_in_seconds: 0.486387 s
+communication_time_in_seconds: 0.320789 s
+Throughput: 5.261223 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 2/4 rodando no host wz12
+Rank 1/4 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 802382901 ns for 1 ops 
+        ==> each op takes 802382901 ns
+
+mmul_computacao deltaT(ns): 486228381 ns for 1 ops 
+        ==> each op takes 486228381 ns
+total_time_in_seconds: 0.802383 s
+computation_time_in_seconds: 0.486228 s
+communication_time_in_seconds: 0.316155 s
+Throughput: 5.292651 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 802802018 ns for 1 ops 
+        ==> each op takes 802802018 ns
+
+mmul_computacao deltaT(ns): 485363607 ns for 1 ops 
+        ==> each op takes 485363607 ns
+total_time_in_seconds: 0.802802 s
+computation_time_in_seconds: 0.485364 s
+communication_time_in_seconds: 0.317438 s
+Throughput: 5.289888 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 2/4 rodando no host wz12
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 801862792 ns for 1 ops 
+        ==> each op takes 801862792 ns
+
+mmul_computacao deltaT(ns): 485978490 ns for 1 ops 
+        ==> each op takes 485978490 ns
+total_time_in_seconds: 0.801863 s
+computation_time_in_seconds: 0.485978 s
+communication_time_in_seconds: 0.315884 s
+Throughput: 5.296084 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 2/4 rodando no host wz12
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 799945720 ns for 1 ops 
+        ==> each op takes 799945720 ns
+
+mmul_computacao deltaT(ns): 486121943 ns for 1 ops 
+        ==> each op takes 486121943 ns
+total_time_in_seconds: 0.799946 s
+computation_time_in_seconds: 0.486122 s
+communication_time_in_seconds: 0.313824 s
+Throughput: 5.308776 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 2/4 rodando no host wz12
+Rank 1/4 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 806742185 ns for 1 ops 
+        ==> each op takes 806742185 ns
+
+mmul_computacao deltaT(ns): 487158737 ns for 1 ops 
+        ==> each op takes 487158737 ns
+total_time_in_seconds: 0.806742 s
+computation_time_in_seconds: 0.487159 s
+communication_time_in_seconds: 0.319583 s
+Throughput: 5.264052 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 802203827 ns for 1 ops 
+        ==> each op takes 802203827 ns
+
+mmul_computacao deltaT(ns): 486637302 ns for 1 ops 
+        ==> each op takes 486637302 ns
+total_time_in_seconds: 0.802204 s
+computation_time_in_seconds: 0.486637 s
+communication_time_in_seconds: 0.315567 s
+Throughput: 5.293833 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 809483524 ns for 1 ops 
+        ==> each op takes 809483524 ns
+
+mmul_computacao deltaT(ns): 488788204 ns for 1 ops 
+        ==> each op takes 488788204 ns
+total_time_in_seconds: 0.809484 s
+computation_time_in_seconds: 0.488788 s
+communication_time_in_seconds: 0.320695 s
+Throughput: 5.246225 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 2/4 rodando no host wz12
+Rank 1/4 rodando no host wz11
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 801369923 ns for 1 ops 
+        ==> each op takes 801369923 ns
+
+mmul_computacao deltaT(ns): 485665949 ns for 1 ops 
+        ==> each op takes 485665949 ns
+total_time_in_seconds: 0.801370 s
+computation_time_in_seconds: 0.485666 s
+communication_time_in_seconds: 0.315704 s
+Throughput: 5.299341 GFLOPS
+-----------------------
+Rank 0/4 rodando no host wz10
+Rank 3/4 rodando no host wz15
+Rank 1/4 rodando no host wz11
+Rank 2/4 rodando no host wz12
+
+=== Resultados Multiplicacao de Matrizes MPI (Versao B - Blocada) ===
+Parametros: A[2304 x 960] * B[960 x 960] = C[2304 x 960] | nprocs = 4 | blockWidth (w) = 192
+
+mmul_total deltaT(ns): 800712576 ns for 1 ops 
+        ==> each op takes 800712576 ns
+
+mmul_computacao deltaT(ns): 486152254 ns for 1 ops 
+        ==> each op takes 486152254 ns
+total_time_in_seconds: 0.800713 s
+computation_time_in_seconds: 0.486152 s
+communication_time_in_seconds: 0.314560 s
+Throughput: 5.303692 GFLOPS
+O tempo total dessa shell foi de 81 segundos

@@ -5,8 +5,10 @@
 #SBATCH --job-name=t2-expB
 #SBATCH --output=resultados-expB-blocada-job%j.txt
 
-# OBS: a saida resumida do SLURM vai para resultados-expB-blocada-job%j.txt
-#      e todos os detalhes de cada execucao vao para saida-expB-job$SLURM_JOBID.txt
+# CI1316 - Programacao Paralela - Trabalho 2
+# Autores:
+#   Henrique Villela Silva (GRR20242612)
+#   Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
 
 NLA=${1:-2304}
 M=${2:-960}
@@ -29,7 +31,6 @@ NTIMES=10
 echo "nt " $NTIMES | tee -a $SAIDA
 echo "MAX_EXECS " $MAX_EXECS | tee -a $SAIDA
 
-# Extrai a lista de nodos alocados pelo Slurm
 HOSTS_ARRAY=($(scontrol show hostnames $SLURM_JOB_NODELIST))
 
 echo "------- rodando a Experiencia B (Versao B - Blocada w=${BLOCK_W}): A[${NLA}x${M}] * B[${M}x${NCB}] -------" | tee -a $SAIDA

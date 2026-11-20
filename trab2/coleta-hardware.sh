@@ -5,11 +5,15 @@
 #SBATCH --job-name=t2-hwinfo
 #SBATCH --output=hwinfo-job%j.txt
 
+# CI1316 - Programacao Paralela - Trabalho 2
+# Autores:
+#   Henrique Villela Silva (GRR20242612)
+#   Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
+
 echo "Coletando informacoes de hardware no nodo: $(hostname)"
 lscpu > lscpu.txt
 cat lscpu.txt
 
-# No cluster Xeon (wz*), lstopo-no-graphics suporta svg, ascii, console, xml, fig
 if command -v lstopo-no-graphics >/dev/null 2>&1; then
     lstopo-no-graphics --of svg topology.svg
     lstopo-no-graphics --of ascii lstopo.txt

@@ -4,16 +4,6 @@
  * Autores:
  *   Henrique Villela Silva (GRR20242612)
  *   Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
- *
- * Descricao:
- *   Multiplicacao paralela de matrizes C [Nla x Ncb] = A [Nla x M] * B [M x Ncb]
- *   em precisao dupla (double) utilizando MPI:
- *     - Versao A (direta/simples): sem otimizacao de cache (lacos classicos i -> j -> k),
- *       otimizada com desdobramento de laco (loop unrolling x8 aproveitando M multiplo de 8),
- *       acumuladores independentes para paralelismo no nivel de instrucao (ILP/MLP) e
- *       alinhamento de memoria em 64 bytes (cache line).
- *     - Versao B (blocada/tiling): otimizada para cache com ladrilhos w x w
- *       (lacos externos ii -> kk -> jj e internos i -> k -> j em ordem row-major).
  */
 
 #define _GNU_SOURCE
@@ -28,12 +18,7 @@
 #include "mmul.h"
 #include "chrono.c"
 
-/*
- * Alocacao alinhada em 64 bytes (tamanho da linha de cache L1/L2).
- * Como M e Ncb sao multiplos de 8 (8 * 8 bytes = 64 bytes), alinhar a base
- * em 64 bytes garante que TODA linha das matrizes A, B e C comece exatamente
- * no inicio de uma linha de cache e alinhada para instrucoes vetoriais SSE2/AVX.
- */
+/* Aloca matriz alinhada em 64 bytes (tamanho da linha de cache) */
 static double *alloc_matrix_aligned(size_t n_elems)
 {
     void *ptr = NULL;
@@ -50,39 +35,19 @@ static double *alloc_matrix_aligned(size_t n_elems)
 }
 
 /*
- * gera_matriz -- preenche uma matriz com inteiros pequenos em [-4, 4]
- *   X  vetor de n doubles (a matriz inteira, armazenada por linhas)
- *   n  numero de elementos: linhas x colunas
- *
- * Por que inteiros pequenos guardados em double:
- *   cada produto vale no maximo 16 em modulo, e cada elemento de C no maximo
- *   16*M. Esses valores, e todas as somas parciais, sao inteiros representados
- *   EXATAMENTE em double (bem abaixo de 2^53). Assim o resultado nao depende
- *   da ordem das somas, e a verificacao pode comparar com ==, sem tolerancia,
- *   mesmo que a versao blocada some os termos numa ordem
- *   diferente da sequencial.
- *
- * Regras de uso:
- *   - chamar so no rank 0, antes de enviar para os nodos;
- *   - fixar a semente com srand(1) ANTES da primeira chamada, para que toda
- *     execucao use as mesmas matrizes e um erro possa ser reproduzido.
+ * Preenche a matriz com inteiros pequenos em [-4, 4] guardados como double.
+ * Assim as somas e produtos sao exatos em ponto flutuante e podemos comparar
+ * o resultado com != na verificacao sem erro de arredondamento.
  */
 void gera_matriz(double *X, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         X[i] = (double)(rand() % 9 - 4);
-        /* rand() % 9 da 0..8; menos 4 da -4..4 */
 }
 
 /*
- * verifica_resultado -- confere C = A x B contra uma multiplicacao sequencial
- *   A [Nla x M]   matriz A completa
- *   B [M x Ncb]   matriz B completa
- *   C [Nla x Ncb] resultado a conferir (ja reunido pelo MPI_Gather/MPI_Gatherv)
- *   Todas as matrizes sao de double, armazenadas por linhas (row-major).
- *   Retorna o numero de elementos de C diferentes da referencia:
- *     0 = resultado correto.
- *   Se houver erro, imprime em stderr o primeiro elemento errado e o total.
+ * Confere C = A x B no processo 0 comparando com a multiplicacao sequencial.
+ * Retorna a quantidade de elementos diferentes (0 = tudo certo).
  */
 size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
                           const double *B, const double *C)
@@ -94,7 +59,6 @@ size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
         return total_elems;
     }
 
-    /* Multiplicacao sequencial de referencia (ordem i -> k -> j para melhor localidade) */
     for (int i = 0; i < Nla; i++) {
         const double * restrict A_row = &A[(size_t)i * M];
         double * restrict C_ref_row = &C_ref[(size_t)i * Ncb];
@@ -145,19 +109,10 @@ size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
 }
 
 /*
- * Kernel da Versao A (Direta / Simples):
- *   Multiplicacao nos 3 lacos classicos (i -> j -> k), sem blocagem de cache.
- *   Cada processo multiplica sua faixa horizontal A_local [nl x M]
- *   pelas colunas da matriz B [M x Ncb], produzindo sua faixa C_local [nl x Ncb].
- *
- *   Otimizacoes aplicadas dentro das regras da Versao A:
- *     1. Aproveita a restricao do enunciado (M multiplo de 8) para desdobrar
- *        o laco interno k em 8 iteracoes (loop unrolling x8).
- *     2. Usa 4 acumuladores escalares independentes (sum0..sum3) para quebrar
- *        a cadeia de dependencia de latencia da instrucao addsd (3 ciclos no Xeon)
- *        e permitir multiplos acessos simultaneos ao L2 (MLP).
- *     3. Usa aritmetica de ponteiros pre-calculada (stride, stride2, stride3, stride4)
- *        em vez de recalcular k * Ncb + j a cada iteracao.
+ * Versao A (Direta / Simples):
+ *   Multiplicacao nos 3 lacos tradicionais (i -> j -> k), sem blocagem de cache.
+ *   Como M eh multiplo de 8, o laco interno em k foi desdobrado de 8 em 8
+ *   usando 4 acumuladores.
  */
 void mmul_kernel_versao_A(int nl, int M, int Ncb,
                           const double * restrict A_local,
@@ -200,11 +155,9 @@ void mmul_kernel_versao_A(int nl, int M, int Ncb,
 }
 
 /*
- * Kernel da Versao B (Blocada / Tiling com ladrilhos w x w):
+ * Versao B (Blocada com ladrilhos w x w):
  *   Lacos externos dos blocos: ii -> kk -> jj
- *   Lacos internos escalares:  i  -> k  -> j (acesso consecutivo row-major em B e C)
- *   Enquanto um ladrilho w x w de B permanece em cache, cada linha k do bloco
- *   de B eh reaproveitada pelas w linhas i do bloco de A.
+ *   Lacos internos: i -> k -> j (percorre B e C por linha com passo 1)
  */
 void mmul_kernel_versao_B(int nl, int M, int Ncb, int w,
                           const double * restrict A_local,
@@ -260,7 +213,6 @@ int main(int argc, char *argv[])
     int use_tiling = 0;
     int blockWidth = 0;
 
-    /* Processamento dos argumentos da linha de comando */
     int pos_args[3] = {0, 0, 0};
     int pos_count = 0;
 
@@ -330,8 +282,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* Restricoes do exercicio: colunas multiplas de 8 (linhas alinhadas)
-     * e Nla divisivel por nprocs. */
+    /* Restricoes do exercicio: M e Ncb multiplos de 8 e Nla divisivel por nprocs */
     if (M % 8 || Ncb % 8 || Nla % nprocs) {
         if (rank == 0) fprintf(stderr, "erro: M e Ncb devem ser multiplos de 8 "
                                        "e Nla divisivel por nprocs\n");
@@ -339,7 +290,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* Na versao B, verifica tambem se w atende as restricoes do ladrilho quando aplicavel */
     if (use_tiling && (blockWidth % 8 != 0 || M % blockWidth != 0 || Ncb % blockWidth != 0)) {
         if (rank == 0) {
             fprintf(stderr, "aviso: blockWidth (%d) idealmente deve ser multiplo de 8 e divisor de M (%d) e Ncb (%d)\n",
@@ -347,13 +297,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* a) CADA processo MPI imprime seu rank e o nome do host onde rodou */
     printf("Rank %d/%d rodando no host %s\n", rank, nprocs, hostname);
     fflush(stdout);
 
     int nl = Nla / nprocs;
 
-    /* Alocacao das matrizes alinhadas em 64 bytes (vetores 1D contiguos row-major) */
+    /* Apenas o rank 0 aloca A e C inteiras; os outros alocam so a faixa local e B */
     double *A = NULL;
     double *B = alloc_matrix_aligned((size_t)M * (size_t)Ncb);
     double *C = NULL;
@@ -386,14 +335,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Inicializacao das matrizes A e B APENAS no nodo 0, FORA da medicao de tempo */
+    /* Gera A e B somente no rank 0 e fora da medicao de tempo */
     if (rank == 0) {
-        srand(MMUL_RAND_SEED);           /* semente fixa: execucoes reproduziveis */
-        gera_matriz(A, (size_t)Nla * M); /* A [Nla x M] */
-        gera_matriz(B, (size_t)M * Ncb); /* B [M x Ncb] */
+        srand(MMUL_RAND_SEED);
+        gera_matriz(A, (size_t)Nla * M);
+        gera_matriz(B, (size_t)M * Ncb);
     }
 
-    /* Sincroniza todos os processos antes de iniciar a cronometragem */
     MPI_Barrier(MPI_COMM_WORLD);
 
     chronometer_t total_chrono, comp_chrono;
@@ -403,10 +351,6 @@ int main(int argc, char *argv[])
     chrono_start(&total_chrono);
 
     if (nprocs == 1) {
-        /*
-         * Caso -np 1: executa apenas no nodo 0 a versao SEQUENCIAL
-         * (sem overhead de comunicacao MPI).
-         */
         chrono_start(&comp_chrono);
         if (use_tiling) {
             mmul_kernel_versao_B(Nla, M, Ncb, blockWidth, A, B, C);
@@ -415,13 +359,6 @@ int main(int argc, char *argv[])
         }
         chrono_stop(&comp_chrono);
     } else {
-        /*
-         * Caso paralelo (-np > 1):
-         *   1. MPI_Scatter distribui faixas horizontais de A (nl linhas por processo)
-         *   2. MPI_Bcast replica a matriz B inteira para todos os processos
-         *   3. Kernel local calcula a faixa local_C = local_A * B
-         *   4. MPI_Gather recolhe as faixas local_C na matriz C do processo 0
-         */
         MPI_Scatter(A, nl * M, MPI_DOUBLE,
                     local_A, nl * M, MPI_DOUBLE,
                     0, MPI_COMM_WORLD);
@@ -443,13 +380,6 @@ int main(int argc, char *argv[])
 
     chrono_stop(&total_chrono);
 
-    /*
-     * Reporte de tempos e vazao (GFLOPS) no processo 0:
-     *   - Tempo Total (medido com total_chrono no rank 0)
-     *   - Tempo de Computacao (medido com comp_chrono)
-     *   - Tempo de Comunicacao = Tempo Total - Tempo de Computacao
-     *   - Vazao em GFLOPS = (2 * Nla * M * Ncb) / (Tempo Total * 10^9)
-     */
     if (rank == 0) {
         double total_time_s = (double)chrono_gettotal(&total_chrono) / 1.0e9;
         double comp_time_s  = (double)chrono_gettotal(&comp_chrono) / 1.0e9;
@@ -458,7 +388,6 @@ int main(int argc, char *argv[])
             comm_time_s = 0.0;
         }
 
-        /* Cada elemento de C [Nla x Ncb] requer M multiplicacoes e M adicoes = 2*M FLOPs */
         double total_flops = 2.0 * (double)Nla * (double)M * (double)Ncb;
         double gflops = (total_time_s > 0.0) ? (total_flops / (total_time_s * 1.0e9)) : 0.0;
 
@@ -480,7 +409,6 @@ int main(int argc, char *argv[])
         printf("communication_time_in_seconds: %lf s\n", comm_time_s);
         printf("Throughput: %lf GFLOPS\n", gflops);
 
-        /* Modo verificador (-v): executa APENAS no rank 0, FORA da medicao de tempo */
         if (verify_flag) {
             size_t erros = verifica_resultado(Nla, M, Ncb, A, B, C);
             if (erros == 0) {
@@ -493,7 +421,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Desalocacao de memoria antes de MPI_Finalize */
     if (local_A) free(local_A);
     if (local_C) free(local_C);
     if (A) free(A);

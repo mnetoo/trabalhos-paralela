@@ -1,6 +1,10 @@
 #!/bin/bash
-# Script para rodar no nodo de login (ex: w00) SEM usar slurm, apenas para
-# verificar a correcao (-v) das Versoes A e B com 1, 2, 3 e 4 processos MPI.
+# CI1316 - Programacao Paralela - Trabalho 2
+# Autores:
+#   Henrique Villela Silva (GRR20242612)
+#   Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
+#
+# Script para testar a corretude (-v) das Versoes A e B com 1, 2, 3 e 4 processos MPI.
 
 NLA=${1:-2304}
 M=${2:-960}

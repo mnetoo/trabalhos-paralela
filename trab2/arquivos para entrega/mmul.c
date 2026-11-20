@@ -4,13 +4,6 @@
  * Autores:
  *   Henrique Villela Silva (GRR20242612)
  *   Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
- *
- * Descricao:
- *   Multiplicacao paralela de matrizes C [Nla x Ncb] = A [Nla x M] * B [M x Ncb]
- *   em precisao dupla (double) utilizando MPI:
- *     - Versao A (direta/simples): sem otimizacao de cache (lacos classicos i -> j -> k).
- *     - Versao B (blocada/tiling): otimizada para cache com ladrilhos w x w
- *       (lacos externos ii -> kk -> jj e internos i -> k -> j em ordem row-major).
  */
 
 #define _GNU_SOURCE
@@ -25,40 +18,36 @@
 #include "mmul.h"
 #include "chrono.c"
 
+/* Aloca matriz alinhada em 64 bytes (tamanho da linha de cache) */
+static double *alloc_matrix_aligned(size_t n_elems)
+{
+    void *ptr = NULL;
+    size_t bytes = n_elems * sizeof(double);
+#if defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
+    if (posix_memalign(&ptr, 64, bytes) != 0) {
+        return NULL;
+    }
+    return (double *)ptr;
+#else
+    ptr = malloc(bytes);
+    return (double *)ptr;
+#endif
+}
+
 /*
- * gera_matriz -- preenche uma matriz com inteiros pequenos em [-4, 4]
- *   X  vetor de n doubles (a matriz inteira, armazenada por linhas)
- *   n  numero de elementos: linhas x colunas
- *
- * Por que inteiros pequenos guardados em double:
- *   cada produto vale no maximo 16 em modulo, e cada elemento de C no maximo
- *   16*M. Esses valores, e todas as somas parciais, sao inteiros representados
- *   EXATAMENTE em double (bem abaixo de 2^53). Assim o resultado nao depende
- *   da ordem das somas, e a verificacao pode comparar com ==, sem tolerancia,
- *   mesmo que a versao blocada some os termos numa ordem
- *   diferente da sequencial.
- *
- * Regras de uso:
- *   - chamar so no rank 0, antes de enviar para os nodos;
- *   - fixar a semente com srand(1) ANTES da primeira chamada, para que toda
- *     execucao use as mesmas matrizes e um erro possa ser reproduzido.
+ * Preenche a matriz com inteiros pequenos em [-4, 4] guardados como double.
+ * Assim as somas e produtos sao exatos em ponto flutuante e podemos comparar
+ * o resultado com != na verificacao sem erro de arredondamento.
  */
 void gera_matriz(double *X, size_t n)
 {
     for (size_t i = 0; i < n; i++)
         X[i] = (double)(rand() % 9 - 4);
-        /* rand() % 9 da 0..8; menos 4 da -4..4 */
 }
 
 /*
- * verifica_resultado -- confere C = A x B contra uma multiplicacao sequencial
- *   A [Nla x M]   matriz A completa
- *   B [M x Ncb]   matriz B completa
- *   C [Nla x Ncb] resultado a conferir (ja reunido pelo MPI_Gather/MPI_Gatherv)
- *   Todas as matrizes sao de double, armazenadas por linhas (row-major).
- *   Retorna o numero de elementos de C diferentes da referencia:
- *     0 = resultado correto.
- *   Se houver erro, imprime em stderr o primeiro elemento errado e o total.
+ * Confere C = A x B no processo 0 comparando com a multiplicacao sequencial.
+ * Retorna a quantidade de elementos diferentes (0 = tudo certo).
  */
 size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
                           const double *B, const double *C)
@@ -70,7 +59,6 @@ size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
         return total_elems;
     }
 
-    /* Multiplicacao sequencial de referencia (ordem i -> k -> j para melhor localidade) */
     for (int i = 0; i < Nla; i++) {
         const double * restrict A_row = &A[(size_t)i * M];
         double * restrict C_ref_row = &C_ref[(size_t)i * Ncb];
@@ -121,35 +109,55 @@ size_t verifica_resultado(int Nla, int M, int Ncb, const double *A,
 }
 
 /*
- * Kernel da Versao A (Direta / Simples):
- *   Multiplicacao classica em 3 lacos (i -> j -> k), sem otimizacao de cache.
- *   Cada processo multiplica sua faixa horizontal A_local [nl x M]
- *   pela matriz B inteira [M x Ncb], produzindo sua faixa C_local [nl x Ncb].
+ * Versao A (Direta / Simples):
+ *   Multiplicacao nos 3 lacos tradicionais (i -> j -> k), sem blocagem de cache.
+ *   Como M eh multiplo de 8, o laco interno em k foi desdobrado de 8 em 8
+ *   usando 4 acumuladores.
  */
 void mmul_kernel_versao_A(int nl, int M, int Ncb,
                           const double * restrict A_local,
                           const double * restrict B,
                           double * restrict C_local)
 {
+    const size_t stride  = (size_t)Ncb;
+    const size_t stride2 = stride * 2;
+    const size_t stride3 = stride * 3;
+    const size_t stride4 = stride * 4;
+
     for (int i = 0; i < nl; i++) {
-        const double * restrict A_row = &A_local[(size_t)i * M];
-        double * restrict C_row = &C_local[(size_t)i * Ncb];
+        const double * restrict A_row = &A_local[(size_t)i * (size_t)M];
+        double * restrict C_row = &C_local[(size_t)i * stride];
+
         for (int j = 0; j < Ncb; j++) {
-            double sum = 0.0;
-            for (int k = 0; k < M; k++) {
-                sum += A_row[k] * B[(size_t)k * Ncb + j];
+            double sum0 = 0.0;
+            double sum1 = 0.0;
+            double sum2 = 0.0;
+            double sum3 = 0.0;
+            const double * restrict b_ptr = &B[j];
+
+            for (int k = 0; k < M; k += 8) {
+                sum0 += A_row[k + 0] * b_ptr[0];
+                sum1 += A_row[k + 1] * b_ptr[stride];
+                sum2 += A_row[k + 2] * b_ptr[stride2];
+                sum3 += A_row[k + 3] * b_ptr[stride3];
+                b_ptr += stride4;
+
+                sum0 += A_row[k + 4] * b_ptr[0];
+                sum1 += A_row[k + 5] * b_ptr[stride];
+                sum2 += A_row[k + 6] * b_ptr[stride2];
+                sum3 += A_row[k + 7] * b_ptr[stride3];
+                b_ptr += stride4;
             }
-            C_row[j] = sum;
+
+            C_row[j] = (sum0 + sum1) + (sum2 + sum3);
         }
     }
 }
 
 /*
- * Kernel da Versao B (Blocada / Tiling com ladrilhos w x w):
+ * Versao B (Blocada com ladrilhos w x w):
  *   Lacos externos dos blocos: ii -> kk -> jj
- *   Lacos internos escalares:  i  -> k  -> j (acesso consecutivo row-major em B e C)
- *   Enquanto um ladrilho w x w de B permanece em cache, cada linha k do bloco
- *   de B eh reaproveitada pelas w linhas i do bloco de A.
+ *   Lacos internos: i -> k -> j (percorre B e C por linha com passo 1)
  */
 void mmul_kernel_versao_B(int nl, int M, int Ncb, int w,
                           const double * restrict A_local,
@@ -205,7 +213,6 @@ int main(int argc, char *argv[])
     int use_tiling = 0;
     int blockWidth = 0;
 
-    /* Processamento dos argumentos da linha de comando */
     int pos_args[3] = {0, 0, 0};
     int pos_count = 0;
 
@@ -275,8 +282,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* Restricoes do exercicio: colunas multiplas de 8 (linhas alinhadas)
-     * e Nla divisivel por nprocs. */
+    /* Restricoes do exercicio: M e Ncb multiplos de 8 e Nla divisivel por nprocs */
     if (M % 8 || Ncb % 8 || Nla % nprocs) {
         if (rank == 0) fprintf(stderr, "erro: M e Ncb devem ser multiplos de 8 "
                                        "e Nla divisivel por nprocs\n");
@@ -284,7 +290,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* Na versao B, verifica tambem se w atende as restricoes do ladrilho quando aplicavel */
     if (use_tiling && (blockWidth % 8 != 0 || M % blockWidth != 0 || Ncb % blockWidth != 0)) {
         if (rank == 0) {
             fprintf(stderr, "aviso: blockWidth (%d) idealmente deve ser multiplo de 8 e divisor de M (%d) e Ncb (%d)\n",
@@ -292,22 +297,21 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* a) CADA processo MPI imprime seu rank e o nome do host onde rodou */
     printf("Rank %d/%d rodando no host %s\n", rank, nprocs, hostname);
     fflush(stdout);
 
     int nl = Nla / nprocs;
 
-    /* Alocacao das matrizes (vetores 1D contiguos em armazenamento row-major) */
+    /* Apenas o rank 0 aloca A e C inteiras; os outros alocam so a faixa local e B */
     double *A = NULL;
-    double *B = (double *)malloc((size_t)M * (size_t)Ncb * sizeof(double));
+    double *B = alloc_matrix_aligned((size_t)M * (size_t)Ncb);
     double *C = NULL;
     double *local_A = NULL;
     double *local_C = NULL;
 
     if (rank == 0) {
-        A = (double *)malloc((size_t)Nla * (size_t)M * sizeof(double));
-        C = (double *)malloc((size_t)Nla * (size_t)Ncb * sizeof(double));
+        A = alloc_matrix_aligned((size_t)Nla * (size_t)M);
+        C = alloc_matrix_aligned((size_t)Nla * (size_t)Ncb);
         if (A == NULL || B == NULL || C == NULL) {
             fprintf(stderr, "erro: falha na alocacao de memoria no rank 0\n");
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -322,8 +326,8 @@ int main(int argc, char *argv[])
     }
 
     if (nprocs > 1) {
-        local_A = (double *)malloc((size_t)nl * (size_t)M * sizeof(double));
-        local_C = (double *)malloc((size_t)nl * (size_t)Ncb * sizeof(double));
+        local_A = alloc_matrix_aligned((size_t)nl * (size_t)M);
+        local_C = alloc_matrix_aligned((size_t)nl * (size_t)Ncb);
         if (local_A == NULL || local_C == NULL) {
             fprintf(stderr, "erro: falha na alocacao dos buffers locais no rank %d\n", rank);
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -331,14 +335,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Inicializacao das matrizes A e B APENAS no nodo 0, FORA da medicao de tempo */
+    /* Gera A e B somente no rank 0 e fora da medicao de tempo */
     if (rank == 0) {
-        srand(MMUL_RAND_SEED);           /* semente fixa: execucoes reproduziveis */
-        gera_matriz(A, (size_t)Nla * M); /* A [Nla x M] */
-        gera_matriz(B, (size_t)M * Ncb); /* B [M x Ncb] */
+        srand(MMUL_RAND_SEED);
+        gera_matriz(A, (size_t)Nla * M);
+        gera_matriz(B, (size_t)M * Ncb);
     }
 
-    /* Sincroniza todos os processos antes de iniciar a cronometragem */
     MPI_Barrier(MPI_COMM_WORLD);
 
     chronometer_t total_chrono, comp_chrono;
@@ -348,10 +351,6 @@ int main(int argc, char *argv[])
     chrono_start(&total_chrono);
 
     if (nprocs == 1) {
-        /*
-         * Caso -np 1: executa apenas no nodo 0 a versao SEQUENCIAL
-         * (sem overhead de comunicacao MPI).
-         */
         chrono_start(&comp_chrono);
         if (use_tiling) {
             mmul_kernel_versao_B(Nla, M, Ncb, blockWidth, A, B, C);
@@ -360,13 +359,6 @@ int main(int argc, char *argv[])
         }
         chrono_stop(&comp_chrono);
     } else {
-        /*
-         * Caso paralelo (-np > 1):
-         *   1. MPI_Scatter distribui faixas horizontais de A (nl linhas por processo)
-         *   2. MPI_Bcast replica a matriz B inteira para todos os processos
-         *   3. Kernel local calcula a faixa local_C = local_A * B
-         *   4. MPI_Gather recolhe as faixas local_C na matriz C do processo 0
-         */
         MPI_Scatter(A, nl * M, MPI_DOUBLE,
                     local_A, nl * M, MPI_DOUBLE,
                     0, MPI_COMM_WORLD);
@@ -388,13 +380,6 @@ int main(int argc, char *argv[])
 
     chrono_stop(&total_chrono);
 
-    /*
-     * Reporte de tempos e vazao (GFLOPS) no processo 0:
-     *   - Tempo Total (medido com total_chrono no rank 0)
-     *   - Tempo de Computacao (medido com comp_chrono)
-     *   - Tempo de Comunicacao = Tempo Total - Tempo de Computacao
-     *   - Vazao em GFLOPS = (2 * Nla * M * Ncb) / (Tempo Total * 10^9)
-     */
     if (rank == 0) {
         double total_time_s = (double)chrono_gettotal(&total_chrono) / 1.0e9;
         double comp_time_s  = (double)chrono_gettotal(&comp_chrono) / 1.0e9;
@@ -403,7 +388,6 @@ int main(int argc, char *argv[])
             comm_time_s = 0.0;
         }
 
-        /* Cada elemento de C [Nla x Ncb] requer M multiplicacoes e M adicoes = 2*M FLOPs */
         double total_flops = 2.0 * (double)Nla * (double)M * (double)Ncb;
         double gflops = (total_time_s > 0.0) ? (total_flops / (total_time_s * 1.0e9)) : 0.0;
 
@@ -425,7 +409,6 @@ int main(int argc, char *argv[])
         printf("communication_time_in_seconds: %lf s\n", comm_time_s);
         printf("Throughput: %lf GFLOPS\n", gflops);
 
-        /* Modo verificador (-v): executa APENAS no rank 0, FORA da medicao de tempo */
         if (verify_flag) {
             size_t erros = verifica_resultado(Nla, M, Ncb, A, B, C);
             if (erros == 0) {
@@ -438,7 +421,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Desalocacao de memoria antes de MPI_Finalize */
     if (local_A) free(local_A);
     if (local_C) free(local_C);
     if (A) free(A);

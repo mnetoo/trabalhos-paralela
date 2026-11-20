@@ -1,3 +1,8 @@
+# CI1316 - Programacao Paralela - Trabalho 2
+# Autores:
+#   Henrique Villela Silva (GRR20242612)
+#   Marcus Sebastiao Adriano Rocha Neto (GRR20240710)
+
 CC = mpicc
 CFLAGS = -Wall -Wextra -O3 -march=native -funroll-loops -std=gnu11
 LDFLAGS = -lm
